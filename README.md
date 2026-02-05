@@ -32,48 +32,33 @@ Pastikan sudah terinstall:
 - Node.js & NPM (opsional)
 
 Cek:
-```bash
 php -v
 composer -v
 git --version
-```bash
 
 📥 Clone Repository
-```bash
 git clone https://github.com/username/nama-repo.git
 cd nama-repo
-```bash
 
 📦 Install Dependency
-```bash
 composer install
-```bash
 
 🔑 Setup Environment
 Copy file environment:
-```bash
 cp .env.example .env
 Generate key:
-```bash
 
 php artisan key:generate
 🗄️ Database Configuration
 Edit file .env, cari yang namanya .env lalu ganti bagian ini dan pastikan ganti ke mysql konfigurasinya:
-```bash
 DB_DATABASE=nama_database
 DB_USERNAME=root
 DB_PASSWORD=
-```bash
 
 Lalu jalankan:
-```bash
 php artisan migrate
-Jika ada seeder:
-```bash
 
-```bash
 php artisan serve
-```bash
 Buka di browser:
 
 http://127.0.0.1:8000
