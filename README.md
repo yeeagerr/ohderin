@@ -36,36 +36,44 @@ Cek:
 php -v
 composer -v
 git --version
+```bash
+
 📥 Clone Repository
+```bash
 git clone https://github.com/username/nama-repo.git
 cd nama-repo
-📦 Install Dependency
-composer install
-Jika pakai frontend (Vite):
+```bash
 
-npm install
-npm run dev
+📦 Install Dependency
+```bash
+composer install
+```bash
+
 🔑 Setup Environment
 Copy file environment:
-
+```bash
 cp .env.example .env
 Generate key:
+```bash
 
 php artisan key:generate
 🗄️ Database Configuration
-Edit file .env:
-
+Edit file .env, cari yang namanya .env lalu ganti bagian ini dan pastikan ganti ke mysql konfigurasinya:
+```bash
 DB_DATABASE=nama_database
 DB_USERNAME=root
 DB_PASSWORD=
-Lalu jalankan:
+```bash
 
+Lalu jalankan:
+```bash
 php artisan migrate
 Jika ada seeder:
+```bash
 
-php artisan db:seed
-▶️ Run Project
+```bash
 php artisan serve
+```bash
 Buka di browser:
 
 http://127.0.0.1:8000
