@@ -32,33 +32,30 @@ Pastikan sudah terinstall:
 - Node.js & NPM (opsional)
 
 Cek:
+```bash
 php -v
 composer -v
 git --version
 
-📥 Clone Repository
+
 git clone https://github.com/username/nama-repo.git
 cd nama-repo
 
-📦 Install Dependency
 composer install
 
-🔑 Setup Environment
-Copy file environment:
 cp .env.example .env
-Generate key:
 
 php artisan key:generate
-🗄️ Database Configuration
-Edit file .env, cari yang namanya .env lalu ganti bagian ini dan pastikan ganti ke mysql konfigurasinya:
+
+
+Cari di vscode cari nama file .env dan ganti konfigurasi mysql :
 DB_DATABASE=nama_database
 DB_USERNAME=root
 DB_PASSWORD=
 
-Lalu jalankan:
+ke terminal lagi :
 php artisan migrate
 
 php artisan serve
-Buka di browser:
-
 http://127.0.0.1:8000
+
