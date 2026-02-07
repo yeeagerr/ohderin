@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role_id',
     ];
 
     /**
@@ -46,18 +47,18 @@ class User extends Authenticatable
         ];
     }
 
-    // public function role()
-    // {
-    //     return $this->belongsTo(Role::class);
-    // }
+    public function role()
+    {
+        return $this->belongsTo(Role::class);
+    }
 
-    // public function sales()
-    // {
-    //     return $this->hasMany(Sale::class);
-    // }
+// public function sales()
+// {
+//     return $this->hasMany(Sale::class);
+// }
 
-    // public function stockOpnames()
-    // {
-    //     return $this->hasMany(StockOpname::class);
-    // }
+// public function stockOpnames()
+// {
+//     return $this->hasMany(StockOpname::class);
+// }
 }
