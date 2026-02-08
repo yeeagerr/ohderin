@@ -16,7 +16,7 @@ class ProductsSeeder extends Seeder
     {
         $categories = ['Food', 'Beverage', 'Snack', 'Dessert', 'Coffee', 'Juice', 'Tea', 'Special'];
         $batchSize = 1000;
-        $totalProducts = 20000;
+        $totalProducts = 50000;
         $now = Carbon::now();
 
         for ($i = 0; $i < $totalProducts; $i += $batchSize) {
