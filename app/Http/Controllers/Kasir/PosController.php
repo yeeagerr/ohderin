@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PosController extends Controller
@@ -98,7 +99,7 @@ class PosController extends Controller
                 'order_type' => $request->order_type,
                 'total' => $request->total,
                 'payment_method' => $request->payment_method,
-                'user_id' => auth()->id() ?? 1, // Default to user 1 if not authenticated
+                'user_id' => Auth::user()->id ?? 1, // Default to user 1 if not authenticated
             ]);
 
             // Create sale items
