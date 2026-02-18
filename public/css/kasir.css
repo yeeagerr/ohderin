@@ -1,0 +1,138 @@
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+
+.cart-sidebar {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.2s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.cart-sidebar.cart-open {
+    width: 24rem;
+    /* w-96 */
+    min-width: 20rem;
+    /* w-80 */
+    opacity: 1;
+}
+
+.cart-sidebar.cart-closed {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    padding: 0;
+    border: none;
+}
+
+.cart-sidebar.cart-closed>* {
+    visibility: hidden;
+}
+
+/* Toggle Button */
+.cart-toggle-btn {
+    position: absolute;
+    top: 50%;
+    right: -16px;
+    transform: translateY(-50%);
+    z-index: 30;
+    width: 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #4f46e5;
+    /* indigo-600 */
+    color: white;
+    border-radius: 0 12px 12px 0;
+    cursor: pointer;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.2s ease, right 0.2s ease;
+    border: none;
+    padding: 0;
+}
+
+.cart-toggle-btn:hover {
+    background-color: #4338ca;
+    /* indigo-700 */
+}
+
+.cart-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.3s ease;
+}
+
+.cart-sidebar.cart-closed~.cart-toggle-floating {
+    display: flex;
+}
+
+/* Floating toggle when cart is closed */
+.cart-toggle-floating {
+    position: fixed;
+    top: 50%;
+    left: 80px;
+    /* sidebar width */
+    transform: translateY(-50%);
+    z-index: 30;
+    width: 36px;
+    height: 72px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-color: #4f46e5;
+    color: white;
+    border-radius: 0 12px 12px 0;
+    cursor: pointer;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15);
+    transition: background-color 0.2s ease;
+    border: none;
+    padding: 0;
+}
+
+.cart-toggle-floating:hover {
+    background-color: #4338ca;
+}
+
+.cart-toggle-floating svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Badge on floating toggle */
+.cart-badge {
+    position: absolute;
+    top: 6px;
+    right: -6px;
+    background-color: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 1280px) {
+    .cart-sidebar.cart-open {
+        width: 20rem;
+        /* w-80 */
+        min-width: 20rem;
+    }
+}
