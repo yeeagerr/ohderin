@@ -11,6 +11,8 @@
     @yield('styles')
 </head>
 <body class="bg-gray-50">
+    @include('components.loading-overlay')
+
     <!-- Unsupported Device Popup -->
     <div id="unsupportedPopup" class="fixed inset-0 bg-gradient-to-br from-indigo-600 to-purple-700 z-50 hidden items-center justify-center p-6">
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
