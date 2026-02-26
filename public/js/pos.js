@@ -1,4 +1,3 @@
-// ── State ──────────────────────────────────────
 let cart = [];
 let currentPage = 1;
 let currentCategory = 'all';
@@ -7,12 +6,95 @@ let selectedOrderType = 'dine_in';
 let selectedPaymentMethod = 'cash';
 const TAX_RATE = 0.10;
 
-// These will be set from the blade template via data attributes
 let routeProducts = '';
 let routeCheckout = '';
 let csrfToken = '';
 
-// ── Cart Toggle ────────────────────────────────
+const CART_KEY = 'pos_cart';
+const QUEUE_KEY = 'pos_offline_queue';
+
+function saveCart() {
+    localStorage.setItem(CART_KEY, JSON.stringify(cart));
+}
+
+function loadCart() {
+    const saved = localStorage.getItem(CART_KEY);
+    if (saved) cart = JSON.parse(saved);
+}
+
+function getQueue() {
+    const q = localStorage.getItem(QUEUE_KEY);
+    return q ? JSON.parse(q) : [];
+}
+
+function pushToQueue(payload) {
+    const queue = getQueue();
+    queue.push({ payload, timestamp: Date.now() });
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+}
+
+function showToast(msg) {
+    let el = document.getElementById('posToast');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'posToast';
+        el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;z-index:9999;transition:opacity .3s;';
+        document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.opacity = '1';
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.style.opacity = '0', 4000);
+}
+
+function updateOfflineBanner() {
+    let el = document.getElementById('offlineBanner');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'offlineBanner';
+        el.style.cssText = 'position:fixed;top:0;left:0;right:0;text-align:center;padding:6px;font-size:13px;font-weight:600;z-index:9999;display:none;';
+        document.body.appendChild(el);
+    }
+
+}
+
+async function syncQueue() {
+    const queue = getQueue();
+    if (!queue.length) return;
+
+    const failed = [];
+    for (const entry of queue) {
+        try {
+            const res = await fetch(routeCheckout, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+                body: JSON.stringify(entry.payload)
+            });
+            const data = await res.json();
+            if (!data.success) failed.push(entry);
+        } catch {
+            failed.push(entry);
+        }
+    }
+
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(failed));
+    const synced = queue.length - failed.length;
+    if (synced > 0) showToast(`${synced} transaksi offline berhasil disinkronkan`);
+    if (failed.length > 0) showToast(`${failed.length} transaksi gagal disinkronkan`);
+}
+
+window.addEventListener('online', async () => {
+    updateOfflineBanner();
+    showToast('Kembali online, menyinkronkan...');
+    await syncQueue();
+    updateOfflineBanner();
+});
+
+window.addEventListener('offline', () => {
+    updateOfflineBanner();
+    showToast('Offline. Transaksi akan disimpan & dikirim saat online.');
+});
+
 let cartOpen = true;
 
 function toggleCart() {
@@ -49,28 +131,20 @@ function updateFloatingBadge() {
     }
 }
 
-// ── Helpers ────────────────────────────────────
 function formatCurrency(amount) {
     return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
 }
 
-// ── Cart Operations ────────────────────────────
 function addToCart(productId, name, price, category) {
     const existingItem = cart.find(item => item.product_id === productId);
 
     if (existingItem) {
         existingItem.qty++;
     } else {
-        cart.push({
-            product_id: productId,
-            name: name,
-            price: price,
-            qty: 1,
-            category: category,
-            note: null
-        });
+        cart.push({ product_id: productId, name, price, qty: 1, category, note: null });
     }
 
+    saveCart();
     renderCart();
     updateFloatingBadge();
 }
@@ -82,6 +156,7 @@ function updateQuantity(productId, change) {
         if (item.qty <= 0) {
             removeFromCart(productId);
         } else {
+            saveCart();
             renderCart();
             updateFloatingBadge();
         }
@@ -90,17 +165,18 @@ function updateQuantity(productId, change) {
 
 function removeFromCart(productId) {
     cart = cart.filter(item => item.product_id !== productId);
+    saveCart();
     renderCart();
     updateFloatingBadge();
 }
 
 function clearCart() {
     cart = [];
+    saveCart();
     renderCart();
     updateFloatingBadge();
 }
 
-// ── Calculations ───────────────────────────────
 function calculateTotals() {
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const tax = subtotal * TAX_RATE;
@@ -110,7 +186,6 @@ function calculateTotals() {
     return { subtotal, tax, total, itemCount };
 }
 
-// ── Render Cart ────────────────────────────────
 function renderCart() {
     const cartContainer = document.getElementById('cartItems');
     const { subtotal, tax, total, itemCount } = calculateTotals();
@@ -161,14 +236,12 @@ function renderCart() {
         document.getElementById('checkoutBtn').disabled = false;
     }
 
-    // Update summary
     document.getElementById('cartItemCount').textContent = `(${itemCount} items)`;
     document.getElementById('cartSubtotal').textContent = formatCurrency(subtotal);
     document.getElementById('cartTax').textContent = formatCurrency(tax);
     document.getElementById('cartTotal').textContent = formatCurrency(total);
 }
 
-// ── Search & Filter ────────────────────────────
 let searchTimeout;
 
 function initSearch() {
@@ -202,7 +275,6 @@ function filterByCategory(category) {
     loadProducts(true);
 }
 
-// ── Load Products (AJAX) ───────────────────────
 function loadProducts(reset = false) {
     const grid = document.getElementById('productsGrid');
     const loading = document.getElementById('loadingIndicator');
@@ -264,6 +336,12 @@ function loadProducts(reset = false) {
                 }
                 loadMoreEl.classList.remove('hidden');
             }
+        })
+        .catch(() => {
+            loading.classList.add('hidden');
+            if (!grid.children.length) {
+                grid.innerHTML = `<div class="col-span-full text-center text-gray-400 py-10">Tidak dapat memuat produk saat offline</div>`;
+            }
         });
 }
 
@@ -272,7 +350,6 @@ function loadMoreProducts() {
     loadProducts(false);
 }
 
-// ── Payment Modal ──────────────────────────────
 function showPaymentModal() {
     if (cart.length === 0) return;
 
@@ -311,26 +388,35 @@ function selectPaymentMethod(method) {
     });
 }
 
-// ── Checkout ───────────────────────────────────
 function processCheckout() {
     const btn = document.getElementById('processPaymentBtn');
     btn.disabled = true;
     btn.textContent = 'Processing...';
 
     const { total } = calculateTotals();
+    const payload = {
+        items: cart,
+        order_type: selectedOrderType,
+        payment_method: selectedPaymentMethod,
+        total: total
+    };
+
+    if (!navigator.onLine) {
+        pushToQueue(payload);
+        updateOfflineBanner();
+        btn.disabled = false;
+        btn.textContent = 'Proses Pembayaran';
+        hidePaymentModal();
+        showToast('Transaksi disimpan, akan dikirim saat online');
+        document.getElementById('successOrderNumber').textContent = 'Tersimpan (Offline)';
+        document.getElementById('successModal').classList.remove('hidden');
+        return;
+    }
 
     fetch(routeCheckout, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': csrfToken
-        },
-        body: JSON.stringify({
-            items: cart,
-            order_type: selectedOrderType,
-            payment_method: selectedPaymentMethod,
-            total: total
-        })
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+        body: JSON.stringify(payload)
     })
         .then(response => response.json())
         .then(data => {
@@ -345,22 +431,24 @@ function processCheckout() {
                 alert(data.message || 'Terjadi kesalahan');
             }
         })
-        .catch(error => {
+        .catch(() => {
+            pushToQueue(payload);
+            updateOfflineBanner();
             btn.disabled = false;
             btn.textContent = 'Proses Pembayaran';
-            alert('Terjadi kesalahan: ' + error.message);
+            hidePaymentModal();
+            showToast('Gagal kirim, transaksi disimpan & akan disync otomatis');
+            document.getElementById('successOrderNumber').textContent = 'Tersimpan (Offline)';
+            document.getElementById('successModal').classList.remove('hidden');
         });
 }
 
-// ── Success Modal ──────────────────────────────
 function hideSuccessModal() {
     document.getElementById('successModal').classList.add('hidden');
     clearCart();
 }
 
-// ── Initialization ─────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
-    // Read config from data attributes
     const posConfig = document.getElementById('posConfig');
     if (posConfig) {
         routeProducts = posConfig.dataset.routeProducts || '';
@@ -368,7 +456,13 @@ document.addEventListener('DOMContentLoaded', function () {
         csrfToken = posConfig.dataset.csrfToken || '';
     }
 
+    loadCart();
     initSearch();
     renderCart();
     updateFloatingBadge();
+    updateOfflineBanner();
+
+    if (navigator.onLine && getQueue().length > 0) {
+        syncQueue().then(updateOfflineBanner);
+    }
 });

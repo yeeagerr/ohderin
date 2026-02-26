@@ -29,7 +29,7 @@
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
           <span class="nav-title text-sm">DASHBOARD</span>
         </a>
-        <a href="{{ route('kasir.order') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
+        <a href="{{ route('kasir.pos') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
           <span class="nav-title text-sm">KASIR</span>
         </a>
