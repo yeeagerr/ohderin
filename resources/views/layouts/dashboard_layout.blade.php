@@ -11,6 +11,8 @@
 </head>
 <body class="flex h-screen overflow-hidden">
 
+  @include('components.loading-overlay')
+
   <div id="overlay" onclick="toggleSidebar()"></div>
 
   <!-- Sidebar -->
@@ -25,11 +27,11 @@
     <div class="mb-6">
       <p class="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Platform</p>
       <nav class="flex flex-col gap-0.5">
-        <a href="#" class="nav-link active-nav flex items-center gap-3 px-3 py-2.5">
+        <a href="{{ url('/dashboard') }}" class="nav-link {{ request()->is('dashboard') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
           <span class="nav-title text-sm">DASHBOARD</span>
         </a>
-        <a href="{{ route('kasir.pos') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
+        <a href="{{ route('kasir.pos') }}" class="nav-link {{ request()->is('kasir*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
           <span class="nav-title text-sm">KASIR</span>
         </a>
@@ -117,68 +119,8 @@
       document.getElementById('sidebar').classList.toggle('open');
       document.getElementById('overlay').classList.toggle('show');
     }
-
-    const ctx = document.getElementById('revenueChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
-        datasets: [{
-          label: 'Pemasukan',
-          data: [1500000, 3000000, 5900000, 5000000, 3000000, 1900000, 4900000],
-          borderColor: '#f97316',
-          backgroundColor: function(context) {
-            const chart = context.chart;
-            const {ctx: c, chartArea} = chart;
-            if (!chartArea) return 'rgba(249,115,22,0.1)';
-            const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-            gradient.addColorStop(0, 'rgba(249,115,22,0.18)');
-            gradient.addColorStop(1, 'rgba(249,115,22,0.01)');
-            return gradient;
-          },
-          borderWidth: 2.5,
-          pointBackgroundColor: '#fff',
-          pointBorderColor: '#f97316',
-          pointBorderWidth: 2,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointHoverBackgroundColor: '#f97316',
-          fill: true,
-          tension: 0.4,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1f2937',
-            padding: 10,
-            titleFont: { family: 'Nunito', size: 11, weight: '600' },
-            bodyFont: { family: 'Nunito', size: 12, weight: '800' },
-            callbacks: { label: c => ' Rp ' + (c.raw / 1000000).toFixed(1) + ' jt' }
-          }
-        },
-        scales: {
-          y: {
-            grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
-            border: { display: false },
-            ticks: {
-              font: { size: 10, family: 'Nunito', weight: '600' },
-              color: '#9ca3af',
-              callback: v => 'Rp ' + (v / 1000000).toFixed(0) + 'jt',
-              maxTicksLimit: 5,
-            }
-          },
-          x: {
-            grid: { display: false },
-            border: { display: false },
-            ticks: { font: { size: 10, family: 'Nunito', weight: '600' }, color: '#9ca3af' }
-          }
-        }
-      }
-    });
   </script>
+
+  @yield('scripts')
 </body>
 </html>
