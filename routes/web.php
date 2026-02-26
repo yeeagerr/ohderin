@@ -6,5 +6,13 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/login', function () {
+    return view('login');
+});
+
+Route::get('/register', function () {
+    return view('register');
+});
+
 require __DIR__ . '/dashboard.php';
 require __DIR__ . '/kasir.php';
