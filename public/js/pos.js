@@ -374,13 +374,15 @@ function loadProducts(reset = false) {
             loading.classList.add("hidden");
 
             data.products.forEach((product) => {
+                console.log("DEBUG PRODUCT NAME ", routeProducts)
+
                 const div = document.createElement("div");
                 div.className =
                     "bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 p-4 cursor-pointer relative group";
                 div.onclick = () =>
                     addToCart(
                         product.id,
-                        product.name,
+                        product?.name,
                         parseFloat(product.price),
                         product.category,
                     );
@@ -389,9 +391,9 @@ function loadProducts(reset = false) {
                         <span class="text-4xl">📦</span>
                     </div>
                     <div class="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-full px-2.5 py-1 text-xs font-semibold text-gray-700 shadow">
-                        ${product.category}
+                        ${product.category.name}
                     </div>
-                    <h3 class="font-semibold text-gray-900 mb-1 truncate" title="${product.name}">${product.name.substring(0, 20)}${product.name.length > 20 ? "..." : ""}</h3>
+                    <h3 class="font-semibold text-gray-900 mb-1 truncate" title="${product?.name}">${product?.name?.substring(0, 20)}${product?.name?.length > 20 ? "..." : ""}</h3>
                     <p class="text-xl font-bold text-indigo-600">${formatCurrency(parseFloat(product.price))}</p>
                     <button class="absolute bottom-4 right-4 p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -420,7 +422,8 @@ function loadProducts(reset = false) {
                 loadMoreEl.classList.remove("hidden");
             }
         })
-        .catch(() => {
+        .catch((e) => {
+            console.error(e, " failed")
             loading.classList.add("hidden");
             if (!grid.children.length) {
                 grid.innerHTML = `<div class="col-span-full text-center text-gray-400 py-10">Tidak dapat memuat produk saat offline</div>`;
@@ -645,7 +648,7 @@ function loadDraftCount() {
                 }
             }
         })
-        .catch(() => {});
+        .catch(() => { });
 }
 
 function showDraftsModal() {

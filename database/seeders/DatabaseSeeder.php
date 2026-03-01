@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             RolesSeeder::class ,
             UsersSeeder::class ,
             RawMaterialsSeeder::class ,
+            CategoriesSeeder::class ,
             ProductsSeeder::class ,
             TransactionsSeeder::class ,
         ]);

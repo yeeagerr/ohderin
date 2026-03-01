@@ -21,21 +21,21 @@ class PosController extends Controller
             ->orderBy('name')
             ->paginate(20);
 
-        $categories = Product::where('is_active', true)
-            ->select('category')
+        $categories = Product::where('products.is_active', true)
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->select('categories.id', 'categories.name')
             ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
+            ->orderBy('categories.name')
+            ->get();
 
         return view('kasir.pos', compact('products', 'categories'));
     }
 
     /**
      * AJAX endpoint for products with search and category filter
-     */
-    public function getProducts(Request $request)
+     */public function getProducts(Request $request)
     {
-        $query = Product::where('is_active', true);
+        $query = Product::with('category')->where('is_active', true);
 
         // Search by name
         if ($request->filled('search')) {
@@ -44,7 +44,7 @@ class PosController extends Controller
 
         // Filter by category
         if ($request->filled('category') && $request->category !== 'all') {
-            $query->where('category', $request->category);
+            $query->where('category_id', $request->category);
         }
 
         $products = $query->orderBy('name')->paginate(20);
@@ -57,6 +57,7 @@ class PosController extends Controller
         ]);
     }
 
+
     public function getDrafts()
     {
         $draftsPaginated = Sale::with('items.product')
@@ -66,12 +67,12 @@ class PosController extends Controller
 
         $drafts = $draftsPaginated->map(function ($draft) {
             return [
-                'id' => $draft->id,
-                'order_number' => $draft->order_number,
-                'total' => $draft->total,
-                'created_at' => $draft->created_at->format('d M Y H:i'),
-                'items_count' => $draft->items->count(),
-                'items_summary' => $draft->items->pluck('product.name')->join(', '),
+            'id' => $draft->id,
+            'order_number' => $draft->order_number,
+            'total' => $draft->total,
+            'created_at' => $draft->created_at->format('d M Y H:i'),
+            'items_count' => $draft->items->count(),
+            'items_summary' => $draft->items->pluck('product.name')->join(', '),
             ];
         });
 
@@ -96,12 +97,12 @@ class PosController extends Controller
 
         $items = $draft->items()->with('product')->get()->map(function ($item) {
             return [
-                'product_id' => $item->product_id,
-                'name' => $item->product->name,
-                'price' => $item->price,
-                'qty' => $item->qty,
-                'category' => $item->product->category,
-                'note' => $item->note,
+            'product_id' => $item->product_id,
+            'name' => $item->product->name,
+            'price' => $item->price,
+            'qty' => $item->qty,
+            'category' => $item->product->category,
+            'note' => $item->note,
             ];
         });
 
@@ -139,11 +140,12 @@ class PosController extends Controller
      */
     public function getCategories()
     {
-        $categories = Product::where('is_active', true)
-            ->select('category')
+        $categories = Product::where('products.is_active', true)
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->select('categories.id', 'categories.name')
             ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
+            ->orderBy('categories.name')
+            ->get();
 
         return response()->json($categories);
     }
@@ -169,7 +171,8 @@ class PosController extends Controller
 
                 // Delete old sale items
                 SaleItem::where('sale_id', $sale->id)->delete();
-            } else {
+            }
+            else {
                 // Create new draft
                 // Generate order number
                 $lastSale = Sale::latest()->first();
@@ -205,7 +208,8 @@ class PosController extends Controller
                 'order_number' => $sale->order_number,
                 'sale_id' => $sale->id,
             ]);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
@@ -250,7 +254,8 @@ class PosController extends Controller
 
                 // Delete old sale items
                 SaleItem::where('sale_id', $sale->id)->delete();
-            } else {
+            }
+            else {
                 // Create new sale
                 // Generate order number
                 $lastSale = Sale::latest()->first();
@@ -286,7 +291,8 @@ class PosController extends Controller
                 'order_number' => $sale->order_number,
                 'sale_id' => $sale->id,
             ]);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,

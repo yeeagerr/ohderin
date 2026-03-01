@@ -7,8 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $fillable = [
-        'name','category','price','is_package','is_active'
+        'name', 'category_id', 'price', 'is_package', 'is_active'
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
 
     public function recipe()
     {
@@ -17,7 +22,7 @@ class Product extends Model
 
     public function packageItems()
     {
-        return $this->hasMany(ProductPackage::class,'package_id');
+        return $this->hasMany(ProductPackage::class , 'package_id');
     }
 
     public function saleItems()

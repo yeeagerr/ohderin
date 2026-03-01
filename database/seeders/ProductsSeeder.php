@@ -14,7 +14,9 @@ class ProductsSeeder extends Seeder
      */
     public function run(): void
     {
-        $categories = ['Food', 'Beverage', 'Snack', 'Dessert', 'Coffee', 'Juice', 'Tea', 'Special'];
+        $categoryMap = DB::table('categories')->pluck('id', 'name')->toArray();
+        $categories = array_keys($categoryMap);
+
         $batchSize = 1000;
         $totalProducts = 120000;
         $now = Carbon::now();
@@ -23,12 +25,13 @@ class ProductsSeeder extends Seeder
             $data = [];
             for ($j = 0; $j < $batchSize; $j++) {
                 $currentIndex = $i + $j + 1;
-                $category = $categories[array_rand($categories)];
+                $categoryName = $categories[array_rand($categories)];
+                $categoryId = $categoryMap[$categoryName];
                 $price = rand(10, 200) * 500; // 5000 to 100000, multiple of 500
 
                 $data[] = [
-                    'name' => "Product Item #{$currentIndex} - {$category}",
-                    'category' => $category,
+                    'name' => "Product Item #{$currentIndex} - {$categoryName}",
+                    'category_id' => $categoryId,
                     'price' => $price,
                     'is_package' => false,
                     'is_active' => true,
@@ -37,14 +40,14 @@ class ProductsSeeder extends Seeder
                 ];
             }
             DB::table('products')->insert($data);
-
-        // Optional: output progress to console if needed locally, but we'll skip for automated seeder
         }
 
         // Add some specific package products manually for testing
+        $packageCategoryId = $categoryMap['Package'] ?? null;
+
         DB::table('products')->insert([
             'name' => 'Paket Hemat 1',
-            'category' => 'Package',
+            'category_id' => $packageCategoryId,
             'price' => 25000,
             'is_package' => true,
             'is_active' => true,

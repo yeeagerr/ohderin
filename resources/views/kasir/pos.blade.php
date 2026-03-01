@@ -147,8 +147,8 @@
                     All Categories
                 </button>
                 @foreach($categories as $category)
-                <button onclick="filterByCategory('{{ $category }}')" class="category-tab px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg whitespace-nowrap text-sm transition" data-category="{{ $category }}">
-                    {{ $category }}
+                <button onclick="filterByCategory('{{ $category['id'] }}')" class="category-tab px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg whitespace-nowrap text-sm transition" data-category="{{ $category['id'] }}">
+                    {{ $category['name'] }}
                 </button>
                 @endforeach
             </div>
@@ -163,7 +163,7 @@
                         <span class="text-4xl">📦</span>
                     </div>
                     <div class="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-full px-2.5 py-1 text-xs font-semibold text-gray-700 shadow">
-                        {{ $product->category }}
+                        {{ $product->category->name }}
                     </div>
                     <h3 class="font-semibold text-gray-900 mb-1 truncate" title="{{ $product->name }}">{{ Str::limit($product->name, 20) }}</h3>
                     <p class="text-xl font-bold text-indigo-600">Rp {{ number_format($product->price, 0, ',', '.') }}</p>
