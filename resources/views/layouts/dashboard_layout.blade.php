@@ -21,55 +21,55 @@
       <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
       </div>
-      <span class="nav-title text-base font-bold">RESTO APP</span>
+      <span class="nav-title text-base ">RESTO APP</span>
     </div>
 
     <div class="mb-6">
-      <p class="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Platform</p>
+      <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Platform</p>
       <nav class="flex flex-col gap-0.5">
         <a href="{{ url('/dashboard') }}" class="nav-link {{ request()->is('dashboard') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z"/></svg>
-          <span class="nav-title text-sm">DASHBOARD</span>
+          <span class="nav-title text-sm tracking-[2px]">DASHBOARD</span>
         </a>
         <a href="{{ route('kasir.pos') }}" class="nav-link {{ request()->is('kasir*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
-          <span class="nav-title text-sm">KASIR</span>
+          <span class="nav-title text-sm tracking-[2px]">KASIR</span>
         </a>
       </nav>
     </div>
 
     <div class="mb-6">
-      <p class="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Manajemen</p>
+      <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Manajemen</p>
       <nav class="flex flex-col gap-0.5">
         <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-          <span class="nav-title text-sm">KATEGORI</span>
+          <span class="nav-title text-sm tracking-[2px]">KATEGORI</span>
         </a>
         <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          <span class="nav-title text-sm">MENU</span>
+          <span class="nav-title text-sm tracking-[2px]">MENU</span>
         </a>
         <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a1 1 0 011-1h6a1 1 0 011 1v2"/></svg>
-          <span class="nav-title text-sm">MEJA</span>
+          <span class="nav-title text-sm tracking-[2px]">MEJA</span>
         </a>
         <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0012 2v2M4.93 4.93A10 10 0 002 12h2M19.07 19.07A10 10 0 0112 22v-2M4.93 19.07A10 10 0 012 12h2"/></svg>
-          <span class="nav-title text-sm">STATUS MEJA</span>
+          <span class="nav-title text-sm tracking-[2px]">STATUS MEJA</span>
         </a>
       </nav>
     </div>
 
     <div class="mb-6">
-      <p class="text-[10px] font-bold uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Laporan</p>
+      <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Laporan</p>
       <nav class="flex flex-col gap-0.5">
         <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-          <span class="nav-title text-sm">TRANSAKSI</span>
+          <span class="nav-title text-sm tracking-[2px]">TRANSAKSI</span>
         </a>
         <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-          <span class="nav-title text-sm">LAPORAN PENJUALAN</span>
+          <span class="nav-title text-sm tracking-[2px]">LAPORAN PENJUALAN</span>
         </a>
       </nav>
     </div>
@@ -105,7 +105,7 @@
           <span class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full"></span>
         </button>
         <div class="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center shrink-0">
-          <span class="text-white text-xs font-bold">A</span>
+          <span class="text-white text-xs ">A</span>
         </div>
       </div>
     </header>
