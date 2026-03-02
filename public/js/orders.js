@@ -447,9 +447,8 @@ function renderOrderDetail(order) {
 
         <!-- Action Buttons -->
         <div class="p-3 lg:p-4 border-t border-gray-200 space-y-2">
-            ${
-                order.status === "draft"
-                    ? `
+            ${order.status === "draft"
+            ? `
                 <button onclick="resumeOrder()" class="w-full px-3 lg:px-4 py-2 lg:py-2.5 bg-indigo-600 text-white rounded-xl text-xs lg:text-sm font-medium hover:bg-indigo-700 transition flex items-center justify-center">
                     <svg class="w-3.5 h-3.5 lg:w-4 lg:h-4 mr-1.5 lg:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-.274A1 1 0 0010.52 12l.27 3.397a1 1 0 001.106 1.035l3.197-.274a1 1 0 00.894-1.036l-.27-3.397a1 1 0 00-1.036-.557z"/>
@@ -457,9 +456,9 @@ function renderOrderDetail(order) {
                     Resume di POS
                 </button>
             `
-                    : `
+            : `
                 <div class="grid grid-cols-2 gap-2">
-                    <button class="px-3 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-xl text-xs lg:text-sm font-medium hover:bg-gray-50 transition flex items-center justify-center">
+                    <button onclick="printOrder()" class="px-3 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-xl text-xs lg:text-sm font-medium hover:bg-gray-50 transition flex items-center justify-center">
                         <svg class="w-3.5 h-3.5 lg:w-4 lg:h-4 mr-1.5 lg:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                         </svg>
@@ -473,7 +472,7 @@ function renderOrderDetail(order) {
                     </button>
                 </div>
             `
-            }
+        }
         </div>
     `;
 
@@ -484,6 +483,99 @@ function closeOrderDetail() {
     const panel = document.getElementById("orderDetailPanel");
     panel.classList.add("hidden");
     document.body.style.overflow = "";
+}
+
+function printOrder() {
+    if (!currentOrderDetail) return;
+
+    const receiptWindow = window.open("", "_blank", "width=400,height=600");
+    const itemsHtml = currentOrderDetail.items.map(item => `
+        <div class="flex items-center justify-between">
+            <div class="">
+                <p class="text-sm font-semibold text-xl">${item.name}</p>
+                <p class="text-sm font-semibold">${item.qty}x ${ordersFormatCurrency(item.price)}</p>
+            </div>
+            <p class="text-sm text-xl font-[500]">${ordersFormatCurrency(item.price * item.qty)}</p>
+        </div>
+    `).join("");
+
+    const receiptHtml = `
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Receipt - ${currentOrderDetail.order_number}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            @media print {
+                body { margin: 0; padding: 0; }
+                .no-print { display: none; }
+            }
+        </style>
+    </head>
+    <body class="bg-gray-100">
+        <div class="w-[21rem] mx-auto p-4 bg-white shadow-lg print:shadow-none print:w-full">
+            <div class="flex items-center justify-center flex-col">
+                <h1 class="font-bold text-3xl">OH DERIN</h1>
+                <p class="text-sm font-semibold">Cafe & Restaurant</p>
+            </div>
+
+            <div class="flex flex-col gap-2 mt-8">
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold">No. Invoice</p>
+                    <p class="text-xs font-semibold">${currentOrderDetail.order_number}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold">Tanggal</p>
+                    <p class="text-xs font-semibold">${currentOrderDetail.created_at} ${currentOrderDetail.created_time}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold">Kasir</p>
+                    <p class="text-xs font-semibold">${currentOrderDetail.cashier_name}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold">Metode Pembayaran</p>
+                    <p class="text-xs font-semibold uppercase">${currentOrderDetail.payment_method}</p>
+                </div>
+            </div>
+
+            <div class="border border-[#B9B9B9] w-[100%] my-4 rounded-2xl"></div>
+
+            <div class="flex flex-col gap-4">
+                ${itemsHtml}
+            </div>
+
+            <div class="border border-[#B9B9B9] w-[100%] my-4 rounded-2xl"></div>
+
+            <div class="flex items-center justify-between">
+                <p class="text-lg font-bold">TOTAL</p>
+                <p class="text-lg font-bold">${ordersFormatCurrency(parseFloat(currentOrderDetail.total))}</p>
+            </div>
+
+            <div class="border border-[#B9B9B9] w-[100%] my-4 rounded-2xl"></div>
+
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-lg font-semibold">Status</p>
+                <p class="text-lg font-semibold uppercase">${currentOrderDetail.status}</p>
+            </div>
+            
+            <div class="mt-8 text-center text-xs text-gray-500">
+                <p>Terima kasih atas kunjungan Anda</p>
+                <p>Silahkan datang kembali!</p>
+            </div>
+        </div>
+        <script>
+            window.onload = function() {
+                window.print();
+            };
+        </script>
+    </body>
+</html>
+    `;
+
+    receiptWindow.document.write(receiptHtml);
+    receiptWindow.document.close();
 }
 
 function resumeOrder() {

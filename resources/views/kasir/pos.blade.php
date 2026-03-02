@@ -236,9 +236,24 @@
 
                 <!-- Total -->
                 <div class="bg-gray-50 rounded-xl p-4">
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center mb-2">
                         <span class="text-gray-600">Total Pembayaran</span>
                         <span id="modalTotal" class="text-2xl font-bold text-indigo-600">Rp 0</span>
+                    </div>
+                </div>
+
+                <!-- Paid Amount & Change -->
+                <div class="bg-indigo-50 rounded-xl p-4 space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Bayar</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rp</span>
+                            <input type="number" id="paidAmountInput" class="w-full pl-10 pr-4 py-2 border-2 border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xl font-bold" value="0">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Kembalian</span>
+                        <span id="changeDisplay" class="text-xl font-bold text-green-600">Rp 0</span>
                     </div>
                 </div>
             </div>
@@ -263,9 +278,17 @@
             </div>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Transaksi Berhasil!</h2>
             <p id="successOrderNumber" class="text-gray-600 mb-6">Order #ORD-001</p>
-            <button onclick="hideSuccessModal()" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition">
-                Transaksi Baru
-            </button>
+            <div class="space-y-3">
+                <button onclick="printReceipt()" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    Cetak Struk
+                </button>
+                <button onclick="hideSuccessModal()" class="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
+                    Transaksi Baru
+                </button>
+            </div>
         </div>
     </div>
 

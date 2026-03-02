@@ -231,6 +231,8 @@ class PosController extends Controller
             'order_type' => 'required|in:dine_in,take_away',
             'payment_method' => 'required|in:cash,qris,debit,credit',
             'total' => 'required|numeric|min:0',
+            'paid_amount' => 'required|numeric|min:0',
+            'change_amount' => 'required|numeric',
             'draft_id' => 'nullable|exists:sales,id', // Optional draft_id for updating existing draft
         ]);
 
@@ -248,6 +250,8 @@ class PosController extends Controller
                 $sale->update([
                     'order_type' => $request->order_type,
                     'total' => $request->total,
+                    'paid_amount' => $request->paid_amount,
+                    'change_amount' => $request->change_amount,
                     'payment_method' => $request->payment_method,
                     'status' => 'completed', // Change status from draft to completed
                 ]);
@@ -266,6 +270,8 @@ class PosController extends Controller
                     'order_number' => $orderNumber,
                     'order_type' => $request->order_type,
                     'total' => $request->total,
+                    'paid_amount' => $request->paid_amount,
+                    'change_amount' => $request->change_amount,
                     'payment_method' => $request->payment_method,
                     'user_id' => Auth::user()->id ?? 1, // Default to user 1 if not authenticated
                     'status' => 'completed', // New transactions are completed by default

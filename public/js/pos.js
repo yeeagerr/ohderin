@@ -441,7 +441,135 @@ function showPaymentModal() {
 
     const { total } = calculateTotals();
     document.getElementById("modalTotal").textContent = formatCurrency(total);
+
+    // Reset payment inputs
+    const paidInput = document.getElementById("paidAmountInput");
+    paidInput.value = total;
+    document.getElementById("changeDisplay").textContent = formatCurrency(0);
+
     document.getElementById("paymentModal").classList.remove("hidden");
+
+    // Add change listener if not already added
+    if (!paidInput.dataset.listenerAdded) {
+        paidInput.addEventListener("input", function () {
+            const paid = parseFloat(this.value) || 0;
+            const { total } = calculateTotals();
+            const change = paid - total;
+            const changeDisplay = document.getElementById("changeDisplay");
+
+            changeDisplay.textContent = formatCurrency(change);
+
+            if (change < 0) {
+                changeDisplay.classList.add("text-red-600");
+                changeDisplay.classList.remove("text-green-600");
+            } else {
+                changeDisplay.classList.add("text-green-600");
+                changeDisplay.classList.remove("text-red-600");
+            }
+        });
+        paidInput.dataset.listenerAdded = "true";
+    }
+}
+
+let lastTransaction = null;
+
+function printReceipt() {
+    if (!lastTransaction) return;
+
+    const receiptWindow = window.open("", "_blank", "width=400,height=600");
+    const itemsHtml = lastTransaction.items.map(item => `
+        <div class="flex items-center justify-between">
+            <div class="">
+                <p class="text-sm font-semibold text-xl">${item.name}</p>
+                <p class="text-sm font-semibold">${item.qty}x ${formatCurrency(item.price)}</p>
+            </div>
+            <p class="text-sm text-xl font-[500]">${formatCurrency(item.price * item.qty)}</p>
+        </div>
+    `).join("");
+
+    const receiptHtml = `
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Receipt - ${lastTransaction.orderNumber}</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            @media print {
+                body { margin: 0; padding: 0; }
+                .no-print { display: none; }
+            }
+        </style>
+    </head>
+    <body class="bg-gray-100">
+        <div class="w-[21rem] mx-auto p-4 bg-white shadow-lg print:shadow-none print:w-full">
+            <div class="flex items-center justify-center flex-col">
+                <h1 class="font-bold text-3xl">OH DERIN</h1>
+                <p class="text-sm font-semibold">Cafe & Restaurant</p>
+            </div>
+
+            <div class="flex flex-col gap-2 mt-8">
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold">No. Invoice</p>
+                    <p class="text-xs font-semibold">${lastTransaction.orderNumber}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold">Tanggal</p>
+                    <p class="text-xs font-semibold">${new Date().toLocaleString('id-ID')}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold">Kasir</p>
+                    <p class="text-xs font-semibold">Staff</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-xs font-semibold">Metode Pembayaran</p>
+                    <p class="text-xs font-semibold uppercase">${lastTransaction.paymentMethod}</p>
+                </div>
+            </div>
+
+            <div class="border border-[#B9B9B9] w-[100%] my-4 rounded-2xl"></div>
+
+            <div class="flex flex-col gap-4">
+                ${itemsHtml}
+            </div>
+
+            <div class="border border-[#B9B9B9] w-[100%] my-4 rounded-2xl"></div>
+
+            <div class="flex items-center justify-between">
+                <p class="text-lg font-bold">TOTAL</p>
+                <p class="text-lg font-bold">${formatCurrency(lastTransaction.total)}</p>
+            </div>
+
+            <div class="border border-[#B9B9B9] w-[100%] my-4 rounded-2xl"></div>
+
+            <div class="flex items-center justify-between mb-2">
+                <p class="text-lg font-semibold">Bayar</p>
+                <p class="text-lg font-semibold">${formatCurrency(lastTransaction.paid)}</p>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <p class="text-lg font-semibold">Kembalian</p>
+                <p class="text-lg font-semibold">${formatCurrency(lastTransaction.change)}</p>
+            </div>
+            
+            <div class="mt-8 text-center text-xs text-gray-500">
+                <p>Terima kasih atas kunjungan Anda</p>
+                <p>Silahkan datang kembali!</p>
+            </div>
+        </div>
+        <script>
+            window.onload = function() {
+                window.print();
+                // window.close(); // Uncomment if you want it to close after print
+            };
+        </script>
+    </body>
+</html>
+    `;
+
+    receiptWindow.document.write(receiptHtml);
+    receiptWindow.document.close();
 }
 
 function hidePaymentModal() {
@@ -494,13 +622,17 @@ function processCheckout() {
     const btn = document.getElementById("processPaymentBtn");
     btn.disabled = true;
     btn.textContent = "Processing...";
-
     const { total } = calculateTotals();
+
+    const paidValue = parseFloat(document.getElementById("paidAmountInput").value) || total;
+    const changeValue = paidValue - total;
     const payload = {
         items: cart,
         order_type: selectedOrderType,
         payment_method: selectedPaymentMethod,
         total: total,
+        paid_amount: paidValue,
+        change_amount: changeValue,
         draft_id: currentDraftId, // Include draft_id if resuming
     };
 
@@ -531,6 +663,20 @@ function processCheckout() {
             btn.textContent = "Proses Pembayaran";
 
             if (data.success) {
+                const paidValue = parseFloat(document.getElementById("paidAmountInput").value) || total;
+                const changeValue = Math.max(0, paidValue - total);
+
+                // Save transaction details for printing
+                lastTransaction = {
+                    orderNumber: data.order_number,
+                    items: [...cart],
+                    total: total,
+                    paid: paidValue,
+                    change: changeValue,
+                    paymentMethod: selectedPaymentMethod,
+                    orderType: selectedOrderType
+                };
+
                 hidePaymentModal();
                 localStorage.removeItem("pos_resume_cart");
                 localStorage.removeItem("pos_cart");
