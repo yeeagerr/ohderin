@@ -41,13 +41,13 @@
     <div class="mb-6">
       <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Manajemen</p>
       <nav class="flex flex-col gap-0.5">
-        <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
+        <a href="{{ route('categories.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
           <span class="nav-title text-sm tracking-[2px]">KATEGORI</span>
         </a>
-        <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
+        <a href="{{ route('products.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-          <span class="nav-title text-sm tracking-[2px]">MENU</span>
+          <span class="nav-title text-sm tracking-[2px]">PRODUK</span>
         </a>
         <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a1 1 0 011-1h6a1 1 0 011 1v2"/></svg>
@@ -114,6 +114,8 @@
     @yield('content')
   </div>
 
+  <script src="{{ asset('js/prevent-double-click.js') }}"></script>
+  
   <script>
     function toggleSidebar() {
       document.getElementById('sidebar').classList.toggle('open');
