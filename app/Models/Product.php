@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     protected $fillable = [
-        'name', 'category_id', 'price', 'is_package', 'is_active'
+        'name',
+        'category_id',
+        'price',
+        'is_package',
+        'is_active'
     ];
 
     public function category()
@@ -43,7 +47,7 @@ class Product extends Model
             return $this->price;
         }
 
-        return $this->packageItems->sum(function($item) {
+        return $this->packageItems->sum(function ($item) {
             return $item->product->price * $item->qty;
         });
     }

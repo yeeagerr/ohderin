@@ -637,14 +637,12 @@
     });
 
     // Create searchable product row
+    let productRowCounter = 0;
+    
     function createProductRow(selectedProductId = null, selectedProductName = null, color = 'orange') {
         const ringColor = color === 'blue' ? 'focus:ring-blue-400' : 'focus:ring-orange-400';
         const dataListId = 'products-list-' + Math.random().toString(36).substr(2, 9);
-        
-        let selectedValue = '';
-        if (selectedProductId && selectedProductName) {
-            selectedValue = `value="${selectedProductName}" data-id="${selectedProductId}"`;
-        }
+        const rowIndex = ++productRowCounter;
         
         let optionsHtml = '';
         allProductsData.forEach(prod => {
@@ -652,19 +650,19 @@
         });
         
         return `
-            <div class="flex items-center gap-2 bg-white rounded-lg p-2 shadow-sm">
+            <div class="flex items-center gap-2 bg-white rounded-lg p-2 shadow-sm product-list-package">
                 <div class="flex-1 relative">
-                    <input type="text" name="package_product_name[]" placeholder="Cari produk..." 
-                        ${selectedValue}
+                    <input type="text" name="package_products[${rowIndex}][product_name]" placeholder="Cari produk..." 
+                        value="${selectedProductName || ''}"
                         class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 ${ringColor} text-sm product-search"
-                        autocomplete="off" list="${dataListId}">
-                    <input type="hidden" name="package_product_id[]" class="product-id-field">
+                        autocomplete="off" list="${dataListId}" required>
+                    <input type="hidden" name="package_products[${rowIndex}][product_id]" class="product-id-field" value="${selectedProductId || ''}">
                     <datalist id="${dataListId}">
                         ${optionsHtml}
                     </datalist>
                 </div>
-                <input type="number" name="package_qty[]" min="1" value="1"
-                    class="w-16 px-2 py-2 rounded border border-gray-300 text-sm focus:outline-none focus:ring-1 ${ringColor}">
+                <input type="number" name="package_products[${rowIndex}][quantity]" min="1" value="1"
+                    class="w-16 px-2 py-2 rounded border border-gray-300 text-sm focus:outline-none focus:ring-1 ${ringColor}" required>
                 <button type="button" class="deleteProductBtn px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm">Hapus</button>
             </div>
         `;
@@ -675,25 +673,29 @@
         const searchInput = row.querySelector('.product-search');
         const idField = row.querySelector('.product-id-field');
         
-        searchInput.addEventListener('input', (e) => {
-            const value = e.target.value;
+        const findAndSetProduct = () => {
+            const value = searchInput.value.trim();
             const product = allProductsData.find(p => p.name === value);
             if (product) {
                 idField.value = product.id;
+                searchInput.classList.remove('border-red-500');
+            } else if (value) {
+                idField.value = '';
+                searchInput.classList.add('border-red-500');
             } else {
                 idField.value = '';
+                searchInput.classList.remove('border-red-500');
             }
-        });
+        };
         
-        // Handle paste and change events
-        searchInput.addEventListener('change', (e) => {
-            const value = e.target.value;
-            const product = allProductsData.find(p => p.name === value);
-            if (product) {
-                idField.value = product.id;
-            } else {
-                idField.value = '';
-            }
+        // Handle input, change, and blur events
+        searchInput.addEventListener('input', findAndSetProduct);
+        searchInput.addEventListener('change', findAndSetProduct);
+        searchInput.addEventListener('blur', findAndSetProduct);
+        
+        // Handle mousedown on datalist option (for better browser support)
+        searchInput.addEventListener('click', (e) => {
+            setTimeout(findAndSetProduct, 100);
         });
     }
 
@@ -723,7 +725,10 @@
     function attachDeleteEvent(button) {
         button.addEventListener('click', (e) => {
             e.preventDefault();
-            button.closest('.flex').remove();
+            const row = button.closest('.product-list-package');
+            if (row) {
+                row.remove();
+            }
         });
     }
 
@@ -744,18 +749,24 @@
         const editContainer = document.getElementById('editPackageItemsContainer');
         editContainer.innerHTML = '';
         
+        // Reset product row counter when opening modal
+        productRowCounter = 0;
+        
         // Show/hide package products list based on is_package
         if (product.is_package) {
             document.getElementById('editPackageProductsList').classList.remove('hidden');
             
             // Load existing package items if available
+            console.log("PRODUCT PACKAGES  = ", product)
             if (product.package_items && product.package_items.length > 0) {
                 product.package_items.forEach(item => {
-                    const product = allProductsData.find(p => p.id === item.product_id);
+                    const foundProduct = allProductsData.find(p => p.id === item.product_id);
                     const newRow = document.createElement('div');
-                    newRow.innerHTML = createProductRow(item.product_id, product ? product.name : '', 'blue');
-                    const qtyInput = newRow.querySelector('input[name="package_qty[]"]');
-                    qtyInput.value = item.qty;
+                    newRow.innerHTML = createProductRow(item.product_id, foundProduct ? foundProduct.name : '', 'blue');
+                    const qtyInput = newRow.querySelector('input[name*="[quantity]"]');
+                    if (qtyInput) {
+                        qtyInput.value = item.qty;
+                    }
                     editContainer.appendChild(newRow);
                     attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
                     attachProductSearchEvent(newRow);

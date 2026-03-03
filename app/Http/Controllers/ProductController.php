@@ -11,26 +11,30 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with('category');
+        $query = Product::with('category')->with('packageItems');
 
         // Search by name
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $search = $request->input('search', '');
+            $query->where('name', 'like', "%{$search}%");
         }
 
         // Filter by category
         if ($request->filled('category')) {
-            $query->where('category_id', $request->category);
+            $category = $request->input('category');
+            $query->where('category_id', $category);
         }
 
         // Filter by status
         if ($request->filled('status')) {
-            $query->where('is_active', $request->status === 'active');
+            $status = $request->input('status', '');
+            $query->where('is_active', $status === 'active');
         }
 
         // Filter by type
         if ($request->filled('type')) {
-            $query->where('is_package', $request->type === 'package');
+            $type = $request->input('type', '');
+            $query->where('is_package', $type === 'package');
         }
 
         $products = $query->latest()->paginate(15);
@@ -53,7 +57,7 @@ class ProductController extends Controller
             ->select('id', 'name')
             ->limit(20)
             ->get();
-        
+
         return response()->json($products);
     }
 
@@ -65,10 +69,9 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'is_package' => 'boolean',
             'is_active' => 'boolean',
-            'package_product_id' => 'nullable|array',
-            'package_product_id.*' => 'nullable|exists:products,id',
-            'package_qty' => 'nullable|array',
-            'package_qty.*' => 'nullable|numeric|min:1',
+            'package_products' => 'nullable|array',
+            'package_products.*.product_id' => 'nullable|exists:products,id',
+            'package_products.*.quantity' => 'nullable|numeric|min:1',
         ]);
 
         $product = Product::create([
@@ -80,21 +83,20 @@ class ProductController extends Controller
         ]);
 
         // Handle package products
-        if ($request->has('is_package') && $request->filled('package_product_id')) {
-            $packageProducts = $request->input('package_product_id', []);
-            $packageQties = $request->input('package_qty', []);
+        if ($request->has('is_package') && $request->filled('package_products')) {
+            $packageProducts = $request->input('package_products', []);
             $insertData = [];
-            
-            foreach ($packageProducts as $index => $productId) {
-                if (!empty($productId)) {
+
+            foreach ($packageProducts as $packageItem) {
+                if (!empty($packageItem['product_id'])) {
                     $insertData[] = [
                         'package_id' => $product->id,
-                        'product_id' => $productId,
-                        'qty' => !empty($packageQties[$index]) ? $packageQties[$index] : 1,
+                        'product_id' => $packageItem['product_id'],
+                        'qty' => !empty($packageItem['quantity']) ? $packageItem['quantity'] : 1,
                     ];
                 }
             }
-            
+
             if (!empty($insertData)) {
                 ProductPackage::insert($insertData);
             }
@@ -111,10 +113,9 @@ class ProductController extends Controller
             'price' => 'required|numeric|min:0',
             'is_package' => 'boolean',
             'is_active' => 'boolean',
-            // 'package_product_id' => 'nullable|array',
-            // 'package_product_id.*' => 'exists:products,id',
-            // 'package_qty' => 'nullable|array',
-            // 'package_qty.*' => 'required_with:package_product_id.*|numeric|min:1',
+            'package_products' => 'nullable|array',
+            'package_products.*.product_id' => 'nullable|exists:products,id',
+            'package_products.*.quantity' => 'nullable|numeric|min:1',
         ]);
 
         $product->update([
@@ -129,23 +130,22 @@ class ProductController extends Controller
         if ($request->has('is_package')) {
             // Delete old package items
             ProductPackage::where('package_id', $product->id)->delete();
-            
+
             // Add new package items
-            if ($request->filled('package_product_id')) {
-                $packageProducts = $request->input('package_product_id', []);
-                $packageQties = $request->input('package_qty', []);
+            if ($request->filled('package_products')) {
+                $packageProducts = $request->input('package_products', []);
                 $insertData = [];
-                
-                foreach ($packageProducts as $index => $productId) {
-                    if (!empty($productId)) {
+
+                foreach ($packageProducts as $packageItem) {
+                    if (!empty($packageItem['product_id'])) {
                         $insertData[] = [
                             'package_id' => $product->id,
-                            'product_id' => $productId,
-                            'qty' => !empty($packageQties[$index]) ? $packageQties[$index] : 1,
+                            'product_id' => $packageItem['product_id'],
+                            'qty' => !empty($packageItem['quantity']) ? $packageItem['quantity'] : 1,
                         ];
                     }
                 }
-                
+
                 if (!empty($insertData)) {
                     ProductPackage::insert($insertData);
                 }
@@ -163,7 +163,7 @@ class ProductController extends Controller
         ProductPackage::where('package_id', $product->id)
             ->orWhere('product_id', $product->id)
             ->delete();
-        
+
         $product->delete();
         return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus!');
     }
