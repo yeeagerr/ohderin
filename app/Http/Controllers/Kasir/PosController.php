@@ -13,6 +13,21 @@ use Illuminate\Support\Facades\DB;
 class PosController extends Controller
 {
     /**
+     * Generate unique order number based on today's date
+     */
+    private function generateOrderNumber()
+    {
+        $today = date('Ymd');
+        $prefix = 'ORD-' . $today . '-';
+
+        $todayCount = Sale::where('order_number', 'like', $prefix . '%')
+            ->count();
+
+        $nextNumber = str_pad($todayCount + 1, 5, '0', STR_PAD_LEFT);
+
+        return $prefix . $nextNumber;
+    }
+    /**
      * Display POS page with initial products and categories
      */
     public function index()
@@ -33,7 +48,8 @@ class PosController extends Controller
 
     /**
      * AJAX endpoint for products with search and category filter
-     */public function getProducts(Request $request)
+     */
+    public function getProducts(Request $request)
     {
         $query = Product::with('category')->where('is_active', true);
 
@@ -67,12 +83,12 @@ class PosController extends Controller
 
         $drafts = $draftsPaginated->map(function ($draft) {
             return [
-            'id' => $draft->id,
-            'order_number' => $draft->order_number,
-            'total' => $draft->total,
-            'created_at' => $draft->created_at->format('d M Y H:i'),
-            'items_count' => $draft->items->count(),
-            'items_summary' => $draft->items->pluck('product.name')->join(', '),
+                'id' => $draft->id,
+                'order_number' => $draft->order_number,
+                'total' => $draft->total,
+                'created_at' => $draft->created_at->format('d M Y H:i'),
+                'items_count' => $draft->items->count(),
+                'items_summary' => $draft->items->pluck('product.name')->join(', '),
             ];
         });
 
@@ -97,12 +113,12 @@ class PosController extends Controller
 
         $items = $draft->items()->with('product')->get()->map(function ($item) {
             return [
-            'product_id' => $item->product_id,
-            'name' => $item->product->name,
-            'price' => $item->price,
-            'qty' => $item->qty,
-            'category' => $item->product->category,
-            'note' => $item->note,
+                'product_id' => $item->product_id,
+                'name' => $item->product->name,
+                'price' => $item->price,
+                'qty' => $item->qty,
+                'category' => $item->product->category,
+                'note' => $item->note,
             ];
         });
 
@@ -171,12 +187,10 @@ class PosController extends Controller
 
                 // Delete old sale items
                 SaleItem::where('sale_id', $sale->id)->delete();
-            }
-            else {
+            } else {
                 // Create new draft
                 // Generate order number
-                $lastSale = Sale::latest()->first();
-                $orderNumber = 'ORD-' . date('Ymd') . '-' . str_pad(($lastSale ? $lastSale->id + 1 : 1), 5, '0', STR_PAD_LEFT);
+                $orderNumber = $this->generateOrderNumber();
 
                 // Create sale
                 $sale = Sale::create([
@@ -208,8 +222,7 @@ class PosController extends Controller
                 'order_number' => $sale->order_number,
                 'sale_id' => $sale->id,
             ]);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
@@ -258,12 +271,10 @@ class PosController extends Controller
 
                 // Delete old sale items
                 SaleItem::where('sale_id', $sale->id)->delete();
-            }
-            else {
+            } else {
                 // Create new sale
                 // Generate order number
-                $lastSale = Sale::latest()->first();
-                $orderNumber = 'ORD-' . date('Ymd') . '-' . str_pad(($lastSale ? $lastSale->id + 1 : 1), 5, '0', STR_PAD_LEFT);
+                $orderNumber = $this->generateOrderNumber();
 
                 // Create sale
                 $sale = Sale::create([
@@ -297,8 +308,7 @@ class PosController extends Controller
                 'order_number' => $sale->order_number,
                 'sale_id' => $sale->id,
             ]);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
                 'success' => false,
