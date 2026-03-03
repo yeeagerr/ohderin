@@ -7,6 +7,8 @@
     <div id="posConfig" class="hidden"
          data-route-products="{{ route('kasir.products') }}"
          data-route-checkout="{{ route('kasir.checkout') }}"
+         data-route-hold="{{ route('kasir.hold') }}"
+         data-route-drafts="{{ route('kasir.drafts') }}"
          data-csrf-token="{{ csrf_token() }}">
     </div>
 
@@ -72,11 +74,12 @@
                 Add/Search Customer
             </button>
             <div class="grid grid-cols-2 gap-3">
-                <button class="px-4 py-3.5 bg-gray-700 text-white rounded-xl hover:bg-gray-800 font-medium flex items-center justify-center transition">
+                <button onclick="holdOrder()" id="holdBtn" class="px-4 py-3.5 bg-gray-700 text-white rounded-xl hover:bg-gray-800 font-medium flex items-center justify-center transition relative disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
                     </svg>
                     Hold
+                    <span id="draftBadge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold" style="display:none;">0</span>
                 </button>
                 <button onclick="showPaymentModal()" id="checkoutBtn" class="px-4 py-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     <span id="cartTotal" class="text-lg font-bold mr-1">Rp 0</span>
@@ -144,8 +147,8 @@
                     All Categories
                 </button>
                 @foreach($categories as $category)
-                <button onclick="filterByCategory('{{ $category }}')" class="category-tab px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg whitespace-nowrap text-sm transition" data-category="{{ $category }}">
-                    {{ $category }}
+                <button onclick="filterByCategory('{{ $category['id'] }}')" class="category-tab px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg whitespace-nowrap text-sm transition" data-category="{{ $category['id'] }}">
+                    {{ $category['name'] }}
                 </button>
                 @endforeach
             </div>
@@ -160,7 +163,7 @@
                         <span class="text-4xl">📦</span>
                     </div>
                     <div class="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-full px-2.5 py-1 text-xs font-semibold text-gray-700 shadow">
-                        {{ $product->category }}
+                        {{ $product->category->name }}
                     </div>
                     <h3 class="font-semibold text-gray-900 mb-1 truncate" title="{{ $product->name }}">{{ Str::limit($product->name, 20) }}</h3>
                     <p class="text-xl font-bold text-indigo-600">Rp {{ number_format($product->price, 0, ',', '.') }}</p>
@@ -233,9 +236,24 @@
 
                 <!-- Total -->
                 <div class="bg-gray-50 rounded-xl p-4">
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between items-center mb-2">
                         <span class="text-gray-600">Total Pembayaran</span>
                         <span id="modalTotal" class="text-2xl font-bold text-indigo-600">Rp 0</span>
+                    </div>
+                </div>
+
+                <!-- Paid Amount & Change -->
+                <div class="bg-indigo-50 rounded-xl p-4 space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Bayar</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rp</span>
+                            <input type="number" id="paidAmountInput" class="w-full pl-10 pr-4 py-2 border-2 border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xl font-bold" value="0">
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Kembalian</span>
+                        <span id="changeDisplay" class="text-xl font-bold text-green-600">Rp 0</span>
                     </div>
                 </div>
             </div>
@@ -260,9 +278,42 @@
             </div>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Transaksi Berhasil!</h2>
             <p id="successOrderNumber" class="text-gray-600 mb-6">Order #ORD-001</p>
-            <button onclick="hideSuccessModal()" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition">
-                Transaksi Baru
-            </button>
+            <div class="space-y-3">
+                <button onclick="printReceipt()" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                    </svg>
+                    Cetak Struk
+                </button>
+                <button onclick="hideSuccessModal()" class="w-full px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition">
+                    Transaksi Baru
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drafts Panel Modal -->
+    <div id="draftsModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] flex flex-col">
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900">Draft Orders</h2>
+                    <p class="text-sm text-gray-500">Order yang di-hold</p>
+                </div>
+                <button onclick="hideDraftsModal()" class="p-2 hover:bg-gray-100 rounded-lg transition">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="draftsListContainer" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <div class="flex flex-col items-center justify-center py-8 text-gray-400">
+                    <svg class="w-12 h-12 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <p class="text-sm">Belum ada draft</p>
+                </div>
+            </div>
         </div>
     </div>
 @endsection
