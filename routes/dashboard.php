@@ -13,6 +13,7 @@ Route::put('/dashboard/categories/{category}', [CategoryController::class, 'upda
 Route::delete('/dashboard/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.delete');
 
 Route::get('/dashboard/products', [ProductController::class, 'index'])->name('products.index');
+Route::get('/dashboard/products/search', [ProductController::class, 'searchProducts'])->name('products.search');
 Route::post('/dashboard/products', [ProductController::class, 'store'])->name('products.store');
 Route::put('/dashboard/products/{product}', [ProductController::class, 'update'])->name('products.update');
 Route::delete('/dashboard/products/{product}', [ProductController::class, 'destroy'])->name('products.delete');

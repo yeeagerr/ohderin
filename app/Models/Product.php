@@ -22,11 +22,38 @@ class Product extends Model
 
     public function packageItems()
     {
-        return $this->hasMany(ProductPackage::class , 'package_id');
+        return $this->hasMany(ProductPackage::class, 'package_id');
     }
 
     public function saleItems()
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    // Helper method untuk cek apakah produk bisa dijadikan komponen paket
+    public function canBePackageComponent()
+    {
+        return !$this->is_package;
+    }
+
+    // Hitung total harga komponen paket
+    public function getPackageTotalPriceAttribute()
+    {
+        if (!$this->is_package) {
+            return $this->price;
+        }
+
+        return $this->packageItems->sum(function($item) {
+            return $item->product->price * $item->qty;
+        });
+    }
+
+    // Hitung keuntungan paket (jika harga paket lebih mahal dari total komponen)
+    public function getPackageProfitAttribute()
+    {
+        if (!$this->is_package) {
+            return 0;
+        }
+        return $this->price - $this->package_total_price;
     }
 }

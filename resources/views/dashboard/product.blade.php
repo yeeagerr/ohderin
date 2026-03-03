@@ -110,7 +110,7 @@
                         <circle cx="11" cy="11" r="8"/>
                         <path d="M21 21l-4.35-4.35"/>
                     </svg>
-                    <input type="text" id="searchInput" placeholder="Cari produk..." 
+                    <input type="text" name="search" placeholder="Cari produk..." value="{{ request('search') }}" 
                            class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"/>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
@@ -135,7 +135,7 @@
                         <option value="regular" {{ request('type') == 'regular' ? 'selected' : '' }}>Reguler</option>
                         <option value="package" {{ request('type') == 'package' ? 'selected' : '' }}>Paket</option>
                     </select>
-                    @if(request()->hasAny(['category', 'status', 'type']))
+                    @if(request()->hasAny(['category', 'status', 'type', 'search']))
                         <a href="{{ route('products.index') }}" class="px-4 py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium transition">
                             Reset
                         </a>
@@ -368,6 +368,11 @@
     </div>
 </main>
 
+<!-- Store product data for dropdowns -->
+<script>
+    const allProductsData = {!! json_encode($allProducts) !!};
+</script>
+
 <!-- Modal Tambah -->
 <div id="addModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal('addModal')"></div>
@@ -383,7 +388,7 @@
                     </button>
                 </div>
             </div>
-            <form action="{{ route('products.store') }}" method="POST" class="p-6">
+            <form action="{{ route('products.store') }}" method="POST" class="p-6" id="addProductForm">
                 @csrf
                 <div class="space-y-5">
                     <div>
@@ -434,6 +439,16 @@
                                 <p class="text-xs text-gray-400">Tampilkan di kasir</p>
                             </div>
                         </label>
+                    </div>
+                    <!-- List Produk Paket -->
+                    <div id="packageProductsList" class="mt-4 hidden">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Daftar Produk Paket</label>
+                        <div class="space-y-2 max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50" id="packageItemsContainer">
+                        </div>
+                        <button type="button" id="addPackageProductBtn" 
+                                class="mt-3 px-4 py-2 text-sm text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow">
+                            Tambah Produk
+                        </button>
                     </div>
                 </div>
                 <div class="flex gap-3 mt-6">
@@ -516,6 +531,16 @@
                             </div>
                         </label>
                     </div>
+                    <!-- List Produk Paket Edit -->
+                    <div id="editPackageProductsList" class="mt-4 hidden">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Daftar Produk Paket</label>
+                        <div class="space-y-2 max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50" id="editPackageItemsContainer">
+                        </div>
+                        <button type="button" id="editAddPackageProductBtn" 
+                                class="mt-3 px-4 py-2 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow">
+                            Tambah Produk
+                        </button>
+                    </div>
                 </div>
                 <div class="flex gap-3 mt-6">
                     <button type="button" onclick="closeModal('editModal')" 
@@ -575,6 +600,138 @@
         document.body.style.overflow = 'auto';
     }
 
+    // Handle package products list visibility in Add Modal
+    const addIsPackageCheckbox = document.querySelector('#addModal input[name="is_package"]');
+    const packageProductsList = document.getElementById('packageProductsList');
+    
+    addIsPackageCheckbox.addEventListener('change', (e) => {
+        const container = document.getElementById('packageItemsContainer');
+        if (e.target.checked) {
+            packageProductsList.classList.remove('hidden');
+            
+            // Initialize with one empty row if container is empty
+            if (container.children.length === 0) {
+                const newRow = document.createElement('div');
+                newRow.innerHTML = createProductRow(null, null, 'orange');
+                container.appendChild(newRow);
+                attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
+                attachProductSearchEvent(newRow);
+            }
+        } else {
+            packageProductsList.classList.add('hidden');
+            // Optionally clear items when unchecking
+            container.innerHTML = '';
+        }
+    });
+
+    // Handle package products list visibility in Edit Modal
+    const editIsPackageCheckbox = document.querySelector('#editModal input[name="is_package"]');
+    const editPackageProductsList = document.getElementById('editPackageProductsList');
+    
+    editIsPackageCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            editPackageProductsList.classList.remove('hidden');
+        } else {
+            editPackageProductsList.classList.add('hidden');
+        }
+    });
+
+    // Create searchable product row
+    function createProductRow(selectedProductId = null, selectedProductName = null, color = 'orange') {
+        const ringColor = color === 'blue' ? 'focus:ring-blue-400' : 'focus:ring-orange-400';
+        const dataListId = 'products-list-' + Math.random().toString(36).substr(2, 9);
+        
+        let selectedValue = '';
+        if (selectedProductId && selectedProductName) {
+            selectedValue = `value="${selectedProductName}" data-id="${selectedProductId}"`;
+        }
+        
+        let optionsHtml = '';
+        allProductsData.forEach(prod => {
+            optionsHtml += `<option value="${prod.name}" data-id="${prod.id}">`;
+        });
+        
+        return `
+            <div class="flex items-center gap-2 bg-white rounded-lg p-2 shadow-sm">
+                <div class="flex-1 relative">
+                    <input type="text" name="package_product_name[]" placeholder="Cari produk..." 
+                        ${selectedValue}
+                        class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-1 ${ringColor} text-sm product-search"
+                        autocomplete="off" list="${dataListId}">
+                    <input type="hidden" name="package_product_id[]" class="product-id-field">
+                    <datalist id="${dataListId}">
+                        ${optionsHtml}
+                    </datalist>
+                </div>
+                <input type="number" name="package_qty[]" min="1" value="1"
+                    class="w-16 px-2 py-2 rounded border border-gray-300 text-sm focus:outline-none focus:ring-1 ${ringColor}">
+                <button type="button" class="deleteProductBtn px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 text-sm">Hapus</button>
+            </div>
+        `;
+    }
+
+    // Handle product search and auto-fill ID
+    function attachProductSearchEvent(row) {
+        const searchInput = row.querySelector('.product-search');
+        const idField = row.querySelector('.product-id-field');
+        
+        searchInput.addEventListener('input', (e) => {
+            const value = e.target.value;
+            const product = allProductsData.find(p => p.name === value);
+            if (product) {
+                idField.value = product.id;
+            } else {
+                idField.value = '';
+            }
+        });
+        
+        // Handle paste and change events
+        searchInput.addEventListener('change', (e) => {
+            const value = e.target.value;
+            const product = allProductsData.find(p => p.name === value);
+            if (product) {
+                idField.value = product.id;
+            } else {
+                idField.value = '';
+            }
+        });
+    }
+
+    // Add new package product row in Add Modal
+    document.getElementById('addPackageProductBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const container = document.getElementById('packageItemsContainer');
+        const newRow = document.createElement('div');
+        newRow.innerHTML = createProductRow(null, null, 'orange');
+        container.appendChild(newRow);
+        attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
+        attachProductSearchEvent(newRow);
+    });
+
+    // Add new package product row in Edit Modal
+    document.getElementById('editAddPackageProductBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const container = document.getElementById('editPackageItemsContainer');
+        const newRow = document.createElement('div');
+        newRow.innerHTML = createProductRow(null, null, 'blue');
+        container.appendChild(newRow);
+        attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
+        attachProductSearchEvent(newRow);
+    });
+
+    // Helper function to attach delete event
+    function attachDeleteEvent(button) {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            button.closest('.flex').remove();
+        });
+    }
+
+    // Attach delete events to initial buttons
+    document.querySelectorAll('.deleteProductBtn').forEach(btn => {
+        attachDeleteEvent(btn);
+    });
+
     function openEditModal(product) {
         document.getElementById('editForm').action = `/dashboard/products/${product.id}`;
         document.getElementById('editName').value = product.name;
@@ -582,6 +739,39 @@
         document.getElementById('editPrice').value = product.price;
         document.getElementById('editIsPackage').checked = product.is_package;
         document.getElementById('editIsActive').checked = product.is_active;
+        
+        // Clear existing package items
+        const editContainer = document.getElementById('editPackageItemsContainer');
+        editContainer.innerHTML = '';
+        
+        // Show/hide package products list based on is_package
+        if (product.is_package) {
+            document.getElementById('editPackageProductsList').classList.remove('hidden');
+            
+            // Load existing package items if available
+            if (product.package_items && product.package_items.length > 0) {
+                product.package_items.forEach(item => {
+                    const product = allProductsData.find(p => p.id === item.product_id);
+                    const newRow = document.createElement('div');
+                    newRow.innerHTML = createProductRow(item.product_id, product ? product.name : '', 'blue');
+                    const qtyInput = newRow.querySelector('input[name="package_qty[]"]');
+                    qtyInput.value = item.qty;
+                    editContainer.appendChild(newRow);
+                    attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
+                    attachProductSearchEvent(newRow);
+                });
+            } else {
+                // Add one empty row
+                const newRow = document.createElement('div');
+                newRow.innerHTML = createProductRow(null, null, 'blue');
+                editContainer.appendChild(newRow);
+                attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
+                attachProductSearchEvent(newRow);
+            }
+        } else {
+            document.getElementById('editPackageProductsList').classList.add('hidden');
+        }
+        
         openModal('editModal');
     }
 
@@ -596,14 +786,6 @@
             document.getElementById('toggleForm' + id).submit();
         }
     }
-
-    // Search
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-        const search = e.target.value.toLowerCase();
-        document.querySelectorAll('tbody tr').forEach(row => {
-            row.style.display = row.textContent.toLowerCase().includes(search) ? '' : 'none';
-        });
-    });
 
     // Auto close alert
     setTimeout(() => {
