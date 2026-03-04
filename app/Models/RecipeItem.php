@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class RecipeItem extends Model
 {
-    protected $fillable = ['recipe_id','raw_material_id','qty'];
+    public $timestamps = false;
+    protected $fillable = ['recipe_id', 'raw_material_id', 'qty'];
 
     public function recipe()
     {

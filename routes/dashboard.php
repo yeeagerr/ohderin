@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\RawMaterialController;
+use App\Http\Controllers\RecipeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -26,3 +27,5 @@ Route::patch('/dashboard/products/{product}/toggle', [ProductController::class, 
 Route::resource('/dashboard/raw-materials', RawMaterialController::class)->except(['show', 'create', 'edit']);
 
 Route::resource('/dashboard/purchases', PurchaseController::class)->except(['show', 'create', 'edit']);
+
+Route::resource('/dashboard/recipes', RecipeController::class);

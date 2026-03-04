@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class StockOpnameItem extends Model
 {
-    protected $fillable = ['stock_opname_id','raw_material_id','qty'];
+    public $timestamps = false;
+    protected $fillable = ['stock_opname_id', 'raw_material_id', 'qty'];
 
     public function stockOpname()
     {

@@ -6,15 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class ProductPackage extends Model
 {
-    protected $fillable = ['package_id','product_id','qty'];
+    public $timestamps = false;
+    protected $fillable = ['package_id', 'product_id', 'qty'];
 
     public function package()
     {
-        return $this->belongsTo(Product::class,'package_id');
+        return $this->belongsTo(Product::class, 'package_id');
     }
 
     public function product()
     {
-        return $this->belongsTo(Product::class,'product_id');
+        return $this->belongsTo(Product::class, 'product_id');
     }
 }
