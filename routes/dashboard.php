@@ -3,6 +3,7 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\RawMaterialController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -21,3 +22,4 @@ Route::delete('/dashboard/products/{product}', [ProductController::class, 'destr
 
 // Route::resource('/dashboard/products', ProductController::class)->except(['show', 'create', 'edit']);
 Route::patch('/dashboard/products/{product}/toggle', [ProductController::class, 'toggleStatus'])->name('products.toggle');
+Route::resource('/dashboard/raw-materials', RawMaterialController::class)->except(['show', 'create', 'edit']);

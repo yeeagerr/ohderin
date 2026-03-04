@@ -49,9 +49,9 @@
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
           <span class="nav-title text-sm tracking-[2px]">PRODUK</span>
         </a>
-        <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
+        <a href="{{ route('raw-materials.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a1 1 0 011-1h6a1 1 0 011 1v2"/></svg>
-          <span class="nav-title text-sm tracking-[2px]">MEJA</span>
+          <span class="nav-title text-sm tracking-[2px]">BAHAN MENTAH</span>
         </a>
         <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0012 2v2M4.93 4.93A10 10 0 002 12h2M19.07 19.07A10 10 0 0112 22v-2M4.93 19.07A10 10 0 012 12h2"/></svg>
