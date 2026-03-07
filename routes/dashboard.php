@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\RawMaterialController;
 use App\Http\Controllers\RecipeController;
+use App\Http\Controllers\StockOpnameController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -29,3 +30,7 @@ Route::resource('/dashboard/raw-materials', RawMaterialController::class)->excep
 Route::resource('/dashboard/purchases', PurchaseController::class)->except(['show', 'create', 'edit']);
 
 Route::resource('/dashboard/recipes', RecipeController::class);
+
+Route::get('/dashboard/stock-opnames/summary', [StockOpnameController::class, 'getStockSummary'])->name('stock-opnames.summary');
+Route::resource('/dashboard/stock-opnames', StockOpnameController::class);
+Route::get('/dashboard/stock-opnames/{stockOpname}/print', [StockOpnameController::class, 'print'])->name('stock-opnames.print');
