@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Purchase;
 use App\Models\RawMaterial;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class PurchaseController extends Controller
@@ -61,7 +62,10 @@ class PurchaseController extends Controller
             'purchase_date' => 'required|date',
         ]);
 
-        Purchase::create($request->all());
+        DB::transaction(function () use ($request) {
+            $purchase = Purchase::create($request->all());
+            $purchase->rawMaterial->increment('stock', $purchase->qty);
+        });
 
         return redirect()->route('purchases.index')->with('success', 'Pembelian berhasil ditambahkan!');
     }
@@ -75,14 +79,41 @@ class PurchaseController extends Controller
             'purchase_date' => 'required|date',
         ]);
 
-        $purchase->update($request->all());
+        DB::transaction(function () use ($request, $purchase) {
+            $oldQty = $purchase->qty;
+            
+            $purchase->fill($request->all());
+            
+            if ($purchase->isDirty('raw_material_id')) {
+                // If material changed, revert old completely and increment new completely
+                $oldMaterialId = $purchase->getOriginal('raw_material_id');
+                $oldMaterial = RawMaterial::find($oldMaterialId);
+                if ($oldMaterial) {
+                    $oldMaterial->decrement('stock', $oldQty);
+                }
+                
+                $purchase->save();
+                $purchase->rawMaterial->increment('stock', $purchase->qty);
+            } else {
+                // Same material, just adjust difference
+                $purchase->save();
+                $difference = $purchase->qty - $oldQty;
+                if ($difference != 0) {
+                    $purchase->rawMaterial->increment('stock', $difference);
+                }
+            }
+        });
 
         return redirect()->route('purchases.index')->with('success', 'Pembelian berhasil diperbarui!');
     }
 
     public function destroy(Purchase $purchase)
     {
-        $purchase->delete();
+        DB::transaction(function () use ($purchase) {
+            $purchase->rawMaterial->decrement('stock', $purchase->qty);
+            $purchase->delete();
+        });
+        
         return redirect()->route('purchases.index')->with('success', 'Pembelian berhasil dihapus!');
     }
 }

@@ -50,7 +50,7 @@
         </div>
 
         <div class="mb-6">
-            <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Manajemen</p>
+            <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Master Data</p>
             <nav class="flex flex-col gap-0.5">
                 <a href="{{ route('categories.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
@@ -77,15 +77,6 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">BAHAN MENTAH</span>
                 </a>
-                <a href="{{ route('purchases.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
-                        viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="3" />
-                        <path
-                            d="M19.07 4.93A10 10 0 0012 2v2M4.93 4.93A10 10 0 002 12h2M19.07 19.07A10 10 0 0112 22v-2M4.93 19.07A10 10 0 012 12h2" />
-                    </svg>
-                    <span class="nav-title text-sm tracking-[2px]">PURCHASE</span>
-                </a>
                 <a href="{{ route('recipes.index') }}"
                     class="nav-link {{ request()->is('recipes*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
@@ -95,7 +86,21 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">RESEP</span>
                 </a>
+            </nav>
+        </div>
 
+        <div class="mb-6">
+            <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Inventory</p>
+            <nav class="flex flex-col gap-0.5">
+                <a href="{{ route('purchases.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M19.07 4.93A10 10 0 0012 2v2M4.93 4.93A10 10 0 002 12h2M19.07 19.07A10 10 0 0112 22v-2M4.93 19.07A10 10 0 012 12h2" />
+                    </svg>
+                    <span class="nav-title text-sm tracking-[2px]">PURCHASE</span>
+                </a>
                 <a href="{{ route('stock-opnames.index') }}"
                     class="nav-link {{ request()->is('stock-opnames*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"

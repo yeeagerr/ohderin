@@ -20,3 +20,7 @@ Route::delete('/kasir/pos/drafts/{id}', [PosController::class, 'deleteDraft'])->
 Route::get('/kasir/orders', [OrderController::class, 'index'])->name('kasir.order');
 Route::get('/kasir/orders/data', [OrderController::class, 'getOrders'])->name('kasir.orders.data');
 Route::get('/kasir/orders/{id}', [OrderController::class, 'getOrderDetail'])->name('kasir.orders.detail');
+
+// Kasir Stock Opnames
+Route::get('/kasir/stock-opnames', [\App\Http\Controllers\Kasir\StockOpnameController::class, 'index'])->name('kasir.stock-opnames.index');
+Route::post('/kasir/stock-opnames', [\App\Http\Controllers\Kasir\StockOpnameController::class, 'store'])->name('kasir.stock-opnames.store');

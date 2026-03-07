@@ -146,6 +146,7 @@
                         <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider w-16">No</th>
                         <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nama Bahan</th>
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Satuan</th>
+                        <th class="text-right py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Stok Saat Ini</th>
                         <th class="text-right py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Stok Minimal</th>
                         <th class="text-right py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Biaya/Unit</th>
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Aksi</th>
@@ -188,6 +189,17 @@
                             </span>
                         </td>
                         <td class="py-4 px-6 text-right">
+                            @php
+                                $isLowStock = $material->stock <= $material->minimal_stock;
+                                $stockColor = $isLowStock ? 'text-red-600' : 'text-gray-700';
+                            @endphp
+                            <span class="font-bold {{ $stockColor }}">{{ number_format($material->stock, 2, ',', '.') }}</span>
+                            <span class="text-gray-400 text-sm">{{ $material->unit }}</span>
+                            @if($isLowStock)
+                                <div class="text-xs text-red-500 mt-1">Stok Menipis!</div>
+                            @endif
+                        </td>
+                        <td class="py-4 px-6 text-right">
                             <span class="font-medium text-gray-700">{{ number_format($material->minimal_stock, 2, ',', '.') }}</span>
                             <span class="text-gray-400 text-sm">{{ $material->unit }}</span>
                         </td>
@@ -217,7 +229,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="py-16 text-center">
+                        <td colspan="7" class="py-16 text-center">
                             <div class="flex flex-col items-center">
                                 <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                                     <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">

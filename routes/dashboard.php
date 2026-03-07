@@ -31,6 +31,11 @@ Route::resource('/dashboard/purchases', PurchaseController::class)->except(['sho
 
 Route::resource('/dashboard/recipes', RecipeController::class);
 
-Route::get('/dashboard/stock-opnames/summary', [StockOpnameController::class, 'getStockSummary'])->name('stock-opnames.summary');
-Route::resource('/dashboard/stock-opnames', StockOpnameController::class);
-Route::get('/dashboard/stock-opnames/{stockOpname}/print', [StockOpnameController::class, 'print'])->name('stock-opnames.print');
+// Stock Opname
+Route::prefix('dashboard')->group(function () {
+    Route::resource('stock-opnames', StockOpnameController::class);
+    Route::get('stock-summary', [StockOpnameController::class, 'getStockSummary'])->name('stock.summary');
+    Route::post('stock-opnames/{stockOpname}/approve', [StockOpnameController::class, 'approve'])->name('stock-opnames.approve');
+    Route::post('stock-opnames/{stockOpname}/reject', [StockOpnameController::class, 'reject'])->name('stock-opnames.reject');
+    Route::get('stock-opnames/{stockOpname}/print', [StockOpnameController::class, 'print'])->name('stock-opnames.print');
+});

@@ -65,37 +65,11 @@ class StockOpnameController extends Controller
     }
 
     /**
-     * Calculate system stocks based on purchases minus usage from sales
+     * Calculate system stocks based on the stock property on the RawMaterial model
      */
     private function calculateSystemStocks()
     {
-        // Get total purchases per raw material
-        $purchases = Purchase::selectRaw('raw_material_id, SUM(qty) as total_qty')
-                            ->groupBy('raw_material_id')
-                            ->pluck('total_qty', 'raw_material_id')
-                            ->toArray();
-
-        // Get last opname per material (as starting point if exists)
-        $lastOpnames = [];
-        $lastOpnameRecord = StockOpname::latest('opname_date')->first();
-        
-        if ($lastOpnameRecord) {
-            $lastOpnames = StockOpnameItem::where('stock_opname_id', $lastOpnameRecord->id)
-                                          ->pluck('qty', 'raw_material_id')
-                                          ->toArray();
-        }
-
-        // Merge: use last opname if exists, otherwise use purchases
-        $systemStocks = [];
-        $allMaterialIds = array_unique(array_merge(array_keys($purchases), array_keys($lastOpnames)));
-        
-        foreach ($allMaterialIds as $materialId) {
-            // If we have last opname, use that + purchases after opname date
-            // For simplicity, just use total purchases for now
-            $systemStocks[$materialId] = $purchases[$materialId] ?? 0;
-        }
-
-        return $systemStocks;
+        return RawMaterial::pluck('stock', 'id')->toArray();
     }
 
     /**
@@ -148,6 +122,7 @@ class StockOpnameController extends Controller
                 'opname_date' => $request->opname_date,
                 'shift' => $request->shift,
                 'user_id' => Auth::user()->id ?? 1,
+                'status' => 'approved', // Direct from BO is auto approved
             ]);
 
             foreach ($request->items as $item) {
@@ -156,6 +131,9 @@ class StockOpnameController extends Controller
                     'raw_material_id' => $item['raw_material_id'],
                     'qty' => $item['qty'],
                 ]);
+                
+                // Opname from backoffice directly overrides the system stock
+                RawMaterial::where('id', $item['raw_material_id'])->update(['stock' => $item['qty']]);
             }
         });
 
@@ -185,21 +163,28 @@ class StockOpnameController extends Controller
         ]);
 
         // Check for duplicate (excluding current)
-        $exists = StockOpname::where('opname_date', $request->opname_date)
-                             ->where('shift', $request->shift)
-                             ->where('id', '!=', $stockOpname->id)
-                             ->exists();
+        // $exists = StockOpname::where('opname_date', $request->opname_date)
+        //                      ->where('shift', $request->shift)
+        //                      ->where('id', '!=', $stockOpname->id)
+        //                      ->exists();
         
-        if ($exists) {
-            return redirect()->back()
-                           ->withInput()
-                           ->with('error', 'Stock opname untuk tanggal dan shift ini sudah ada!');
-        }
+        // if ($exists) {
+        //     return redirect()->back()
+        //                    ->withInput()
+        //                    ->with('error', 'Stock opname untuk tanggal dan shift ini sudah ada!');
+        // }
 
         DB::transaction(function () use ($request, $stockOpname) {
+            // First revert previous stock if it was approved
+            if ($stockOpname->status === 'approved') {
+                // To cleanly revert, we actually can't easily do it without knowing the stock *before* the opname.
+                // Since Opnames overwrite completely, editing an approved opname will simply overwrite again.
+            }
+
             $stockOpname->update([
                 'opname_date' => $request->opname_date,
                 'shift' => $request->shift,
+                'status' => 'approved' // If edited from BO, forces approval
             ]);
 
             // Delete existing items
@@ -212,6 +197,9 @@ class StockOpnameController extends Controller
                     'raw_material_id' => $item['raw_material_id'],
                     'qty' => $item['qty'],
                 ]);
+
+                // Overrides system stock
+                RawMaterial::where('id', $item['raw_material_id'])->update(['stock' => $item['qty']]);
             }
         });
 
@@ -225,6 +213,35 @@ class StockOpnameController extends Controller
         
         return redirect()->route('stock-opnames.index')
                         ->with('success', 'Stock opname berhasil dihapus!');
+    }
+
+    public function approve(StockOpname $stockOpname)
+    {
+        if ($stockOpname->status === 'approved') {
+            return redirect()->back()->with('error', 'Laporan sudah disetujui sebelumnya.');
+        }
+
+        DB::transaction(function () use ($stockOpname) {
+            $stockOpname->update(['status' => 'approved']);
+            
+            // Apply the stock overrides
+            foreach ($stockOpname->items as $item) {
+                RawMaterial::where('id', $item->raw_material_id)->update(['stock' => $item->qty]);
+            }
+        });
+
+        return redirect()->route('stock-opnames.index')->with('success', 'Stock Opname berhasil disetujui. Stok sistem telah diperbarui.');
+    }
+
+    public function reject(StockOpname $stockOpname)
+    {
+        if ($stockOpname->status === 'approved') {
+            return redirect()->back()->with('error', 'Tidak dapat menolak laporan yang sudah disetujui.');
+        }
+
+        $stockOpname->update(['status' => 'rejected']);
+
+        return redirect()->route('stock-opnames.index')->with('success', 'Stock Opname telah ditolak.');
     }
 
     /**

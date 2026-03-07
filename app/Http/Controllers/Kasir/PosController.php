@@ -27,6 +27,31 @@ class PosController extends Controller
 
         return $prefix . $nextNumber;
     }
+
+    /**
+     * Helper to deduct raw materials based on product recipe/package
+     */
+    private function deductStockForProduct($productId, $qty)
+    {
+        $product = Product::with(['recipe.items.rawMaterial', 'packageItems.product'])->find($productId);
+        if (!$product) return;
+
+        if ($product->is_package) {
+            foreach ($product->packageItems as $packageItem) {
+                $this->deductStockForProduct($packageItem->product_id, $packageItem->qty * $qty);
+            }
+        } else {
+            if ($product->recipe) {
+                foreach ($product->recipe->items as $recipeItem) {
+                    $rawMaterial = $recipeItem->rawMaterial;
+                    if ($rawMaterial) {
+                        $rawMaterial->decrement('stock', $recipeItem->qty * $qty);
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Display POS page with initial products and categories
      */
@@ -298,6 +323,9 @@ class PosController extends Controller
                     'price' => $item['price'],
                     'note' => $item['note'] ?? null,
                 ]);
+
+                // Deduct stock since the sale is completed
+                $this->deductStockForProduct($item['product_id'], $item['qty']);
             }
 
             DB::commit();

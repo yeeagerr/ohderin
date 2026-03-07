@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class RawMaterial extends Model
 {
-    protected $fillable = ['name','unit','minimal_stock','cost'];
+    protected $fillable = ['name','unit','stock','minimal_stock','cost'];
 
     public function recipeItems()
     {

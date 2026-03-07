@@ -6,11 +6,26 @@ use Illuminate\Database\Eloquent\Model;
 
 class StockOpname extends Model
 {
-    protected $fillable = ['opname_date', 'shift', 'user_id'];
+    protected $fillable = ['opname_date', 'shift', 'user_id', 'status', 'notes'];
 
     protected $casts = [
         'opname_date' => 'date',
     ];
+
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('status', 'approved');
+    }
+
+    public function scopeRejected($query)
+    {
+        return $query->where('status', 'rejected');
+    }
 
     public function user()
     {
