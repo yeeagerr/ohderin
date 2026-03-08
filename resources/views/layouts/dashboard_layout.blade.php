@@ -21,7 +21,7 @@
     <div id="overlay" onclick="toggleSidebar()"></div>
 
     <!-- Sidebar -->
-    <aside id="sidebar" class="sidebar-bg w-56 shrink-0 flex flex-col py-6 px-4 text-white h-full">
+    <aside id="sidebar" class="sidebar-bg overflow-auto w-56 shrink-0 flex flex-col py-6 px-4 text-white h-full">
         <div class="flex items-center gap-2 px-2 mb-8">
             <img src="{{ asset('properties/logo_2.png') }}" draggable="false" class="mx-auto" alt="LOGO 1">
         </div>

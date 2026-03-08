@@ -34,7 +34,8 @@ class PosController extends Controller
     private function deductStockForProduct($productId, $qty)
     {
         $product = Product::with(['recipe.items.rawMaterial', 'packageItems.product'])->find($productId);
-        if (!$product) return;
+        if (!$product)
+            return;
 
         if ($product->is_package) {
             foreach ($product->packageItems as $packageItem) {
