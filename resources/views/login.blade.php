@@ -53,7 +53,7 @@
 
         <p class="text-sm text-gray-600">
           Belum punya akun?
-          <a href="#" class="text-blue-600 hover:underline">Daftar</a>
+          <a href="{{route('register')}}" class="text-blue-600 hover:underline">Daftar</a>
         </p>
 
         <button

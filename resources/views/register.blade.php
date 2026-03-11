@@ -63,7 +63,7 @@
 
           <p class="text-sm text-gray-600">
             Sudah punya akun?
-            <a href="#" class="text-blue-600 hover:underline">
+            <a href="{{route('login')}}" class="text-blue-600 hover:underline">
               Log in
             </a>
           </p>
