@@ -81,7 +81,7 @@
                     Hold
                     <span id="draftBadge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold" style="display:none;">0</span>
                 </button>
-                <button onclick="showPaymentModal()" id="checkoutBtn" class="px-4 py-3.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <button onclick="showPaymentModal()" id="checkoutBtn" class="px-4 py-3.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 font-medium flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                     <span id="cartTotal" class="text-lg font-bold mr-1">Rp 0</span>
                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
@@ -109,29 +109,29 @@
                         <svg class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
-                        <input type="text" id="searchInput" placeholder="Scan barcode or search..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <input type="text" id="searchInput" placeholder="Scan barcode or search..." class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
                     </div>
-                    <button id="buttonInput" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-medium transition whitespace-nowrap">
+                    <button id="buttonInput" class="px-5 py-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 font-medium transition whitespace-nowrap">
                         + Product
                     </button>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <button class="p-2.5 bg-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-200 transition">
+                    <button class="p-2.5 bg-orange-100 text-orange-500 rounded-xl hover:bg-orange-200 transition">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.11 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
                         </svg>
                     </button>
-                    <button class="p-2.5 bg-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-200 transition">
+                    <button class="p-2.5 bg-orange-100 text-orange-500 rounded-xl hover:bg-orange-200 transition">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/>
                         </svg>
                     </button>
-                    <button class="p-2.5 bg-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-200 transition">
+                    <button class="p-2.5 bg-orange-100 text-orange-500 rounded-xl hover:bg-orange-200 transition">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
                         </svg>
                     </button>
-                    <button class="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">
+                    <button class="p-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
                         </svg>
@@ -143,7 +143,7 @@
         <!-- Category Tabs -->
         <div class="bg-white border-b border-gray-200 px-4">
             <div id="categoryTabs" class="flex space-x-1 overflow-x-auto scrollbar-hide py-1">
-                <button onclick="filterByCategory('all')" class="category-tab active px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-medium whitespace-nowrap text-sm" data-category="all">
+                <button onclick="filterByCategory('all')" class="category-tab active px-4 py-2.5 bg-orange-500 text-white rounded-lg font-medium whitespace-nowrap text-sm" data-category="all">
                     All Categories
                 </button>
                 @foreach($categories as $category)
@@ -166,8 +166,8 @@
                         {{ $product->category->name }}
                     </div>
                     <h3 class="font-semibold text-gray-900 mb-1 truncate" title="{{ $product->name }}">{{ Str::limit($product->name, 20) }}</h3>
-                    <p class="text-xl font-bold text-indigo-600">Rp {{ number_format($product->price, 0, ',', '.') }}</p>
-                    <button class="absolute bottom-4 right-4 p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg">
+                    <p class="text-xl font-bold text-orange-500">Rp {{ number_format($product->price, 0, ',', '.') }}</p>
+                    <button class="absolute bottom-4 right-4 p-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                         </svg>
@@ -178,7 +178,7 @@
             
             <!-- Loading indicator -->
             <div id="loadingIndicator" class="hidden flex justify-center py-4">
-                <svg class="animate-spin h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24">
+                <svg class="animate-spin h-8 w-8 text-orange-500" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -187,7 +187,7 @@
             <!-- Load more button -->
             @if($products->hasMorePages())
             <div id="loadMoreContainer" class="flex justify-center py-4">
-                <button onclick="loadMoreProducts()" class="px-6 py-2.5 bg-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-200 font-medium transition">
+                <button onclick="loadMoreProducts()" class="px-6 py-2.5 bg-orange-100 text-orange-500 rounded-xl hover:bg-orange-200 font-medium transition">
                     Load More Products
                 </button>
             </div>
@@ -206,7 +206,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Tipe Order</label>
                     <div class="grid grid-cols-2 gap-3">
-                        <button type="button" onclick="selectOrderType('dine_in')" class="order-type-btn active px-4 py-3 border-2 border-indigo-600 bg-indigo-50 text-indigo-600 rounded-xl font-medium" data-type="dine_in">
+                        <button type="button" onclick="selectOrderType('dine_in')" class="order-type-btn active px-4 py-3 border-2 border-orange-500 bg-orange-50 text-orange-500 rounded-xl font-medium" data-type="dine_in">
                             🍽️ Dine In
                         </button>
                         <button type="button" onclick="selectOrderType('take_away')" class="order-type-btn px-4 py-3 border-2 border-gray-300 rounded-xl font-medium" data-type="take_away">
@@ -219,7 +219,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
                     <div class="grid grid-cols-2 gap-3">
-                        <button type="button" onclick="selectPaymentMethod('cash')" class="payment-method-btn active px-4 py-3 border-2 border-indigo-600 bg-indigo-50 text-indigo-600 rounded-xl font-medium" data-method="cash">
+                        <button type="button" onclick="selectPaymentMethod('cash')" class="payment-method-btn active px-4 py-3 border-2 border-orange-500 bg-orange-50 text-orange-500 rounded-xl font-medium" data-method="cash">
                             💵 Cash
                         </button>
                         <button type="button" onclick="selectPaymentMethod('qris')" class="payment-method-btn px-4 py-3 border-2 border-gray-300 rounded-xl font-medium" data-method="qris">
@@ -238,17 +238,17 @@
                 <div class="bg-gray-50 rounded-xl p-4">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-gray-600">Total Pembayaran</span>
-                        <span id="modalTotal" class="text-2xl font-bold text-indigo-600">Rp 0</span>
+                        <span id="modalTotal" class="text-2xl font-bold text-orange-500">Rp 0</span>
                     </div>
                 </div>
 
                 <!-- Paid Amount & Change -->
-                <div class="bg-indigo-50 rounded-xl p-4 space-y-3">
+                <div class="bg-orange-50 rounded-xl p-4 space-y-3">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Bayar</label>
                         <div class="relative">
                             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">Rp</span>
-                            <input type="number" id="paidAmountInput" class="w-full pl-10 pr-4 py-2 border-2 border-indigo-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xl font-bold" value="0">
+                            <input type="number" id="paidAmountInput" class="w-full pl-10 pr-4 py-2 border-2 border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-xl font-bold" value="0">
                         </div>
                     </div>
                     <div class="flex justify-between items-center">
@@ -261,7 +261,7 @@
                 <button onclick="hidePaymentModal()" class="flex-1 px-4 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition">
                     Batal
                 </button>
-                <button onclick="processCheckout()" id="processPaymentBtn" class="flex-1 px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition">
+                <button onclick="processCheckout()" id="processPaymentBtn" class="flex-1 px-4 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition">
                     Proses Pembayaran
                 </button>
             </div>
@@ -279,7 +279,7 @@
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Transaksi Berhasil!</h2>
             <p id="successOrderNumber" class="text-gray-600 mb-6">Order #ORD-001</p>
             <div class="space-y-3">
-                <button onclick="printReceipt()" class="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition flex items-center justify-center">
+                <button onclick="printReceipt()" class="w-full px-4 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition flex items-center justify-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
                     </svg>

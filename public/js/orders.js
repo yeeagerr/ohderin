@@ -39,11 +39,11 @@ function getInitials(name) {
 }
 
 const avatarColors = [
-    { bg: "bg-indigo-100", text: "text-indigo-600" },
+    { bg: "bg-orange-100", text: "text-orange-600" },
     { bg: "bg-pink-100", text: "text-pink-600" },
     { bg: "bg-green-100", text: "text-green-600" },
     { bg: "bg-purple-100", text: "text-purple-600" },
-    { bg: "bg-orange-100", text: "text-orange-600" },
+    { bg: "bg-blue-100", text: "text-blue-600" },
     { bg: "bg-teal-100", text: "text-teal-600" },
 ];
 
@@ -103,7 +103,7 @@ function loadOrders(reset = false) {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
                     <p class="text-sm">Gagal memuat data orders</p>
-                    <button onclick="loadOrders()" class="mt-3 px-4 py-2 bg-indigo-100 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-200 transition">Coba Lagi</button>
+                    <button onclick="loadOrders()" class="mt-3 px-4 py-2 bg-orange-100 text-orange-600 rounded-lg text-sm font-medium hover:bg-orange-200 transition">Coba Lagi</button>
                 </div>
             `;
         });
@@ -227,7 +227,7 @@ function renderPagination(pagination) {
 
     for (let i = startPage; i <= endPage; i++) {
         if (i === pagination.current_page) {
-            pagesHtml += `<button class="px-3 lg:px-4 py-1.5 lg:py-2 bg-indigo-600 text-white rounded-xl text-xs lg:text-sm font-medium">${i}</button>`;
+            pagesHtml += `<button class="px-3 lg:px-4 py-1.5 lg:py-2 bg-orange-500 text-white rounded-xl text-xs lg:text-sm font-medium">${i}</button>`;
         } else {
             pagesHtml += `<button onclick="goToPage(${i})" class="px-3 lg:px-4 py-1.5 lg:py-2 border border-gray-300 rounded-xl text-xs lg:text-sm font-medium text-gray-600 hover:bg-gray-50 transition">${i}</button>`;
         }
@@ -275,10 +275,10 @@ function renderStatusTabs(counts) {
     tabs.forEach((tab) => {
         const isActive = ordersCurrentStatus === tab.status;
         html += `
-            <button onclick="filterByStatus('${tab.status}')" class="px-3 lg:px-4 py-2 lg:py-2.5 ${isActive ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-100"} rounded-lg font-medium whitespace-nowrap text-xs lg:text-sm flex items-center transition">
+            <button onclick="filterByStatus('${tab.status}')" class="px-3 lg:px-4 py-2 lg:py-2.5 ${isActive ? "bg-orange-500 text-white" : "text-gray-600 hover:bg-gray-100"} rounded-lg font-medium whitespace-nowrap text-xs lg:text-sm flex items-center transition">
                 ${tab.dot ? `<span class="w-1.5 h-1.5 lg:w-2 lg:h-2 ${tab.dot} rounded-full mr-1.5 lg:mr-2"></span>` : ""}
                 ${tab.label}
-                <span class="ml-1.5 lg:ml-2 ${isActive ? "bg-indigo-500" : "bg-gray-200"} px-1.5 lg:px-2 py-0.5 rounded-full text-[10px] lg:text-xs">${tab.count}</span>
+                <span class="ml-1.5 lg:ml-2 ${isActive ? "bg-orange-400" : "bg-gray-200"} px-1.5 lg:px-2 py-0.5 rounded-full text-[10px] lg:text-xs">${tab.count}</span>
             </button>
         `;
     });
@@ -344,7 +344,7 @@ function renderOrderDetail(order) {
         itemsHtml += `
             <div class="flex items-center justify-between p-2.5 lg:p-3 bg-gray-50 rounded-xl">
                 <div class="flex items-center">
-                    <div class="w-8 h-8 lg:w-10 lg:h-10 bg-indigo-100 rounded-lg flex items-center justify-center mr-2 lg:mr-3">
+                    <div class="w-8 h-8 lg:w-10 lg:h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-2 lg:mr-3">
                         <span class="text-base lg:text-lg">📦</span>
                     </div>
                     <div>
@@ -419,7 +419,7 @@ function renderOrderDetail(order) {
                 <div class="border-t border-gray-200 pt-2 mt-2">
                     <div class="flex justify-between">
                         <span class="font-semibold text-gray-900 text-sm lg:text-base">Total</span>
-                        <span class="font-bold text-lg lg:text-xl text-indigo-600">${ordersFormatCurrency(parseFloat(order.total))}</span>
+                        <span class="font-bold text-lg lg:text-xl text-orange-500">${ordersFormatCurrency(parseFloat(order.total))}</span>
                     </div>
                 </div>
             </div>
@@ -447,16 +447,17 @@ function renderOrderDetail(order) {
 
         <!-- Action Buttons -->
         <div class="p-3 lg:p-4 border-t border-gray-200 space-y-2">
-            ${order.status === "draft"
-            ? `
-                <button onclick="resumeOrder()" class="w-full px-3 lg:px-4 py-2 lg:py-2.5 bg-indigo-600 text-white rounded-xl text-xs lg:text-sm font-medium hover:bg-indigo-700 transition flex items-center justify-center">
+            ${
+                order.status === "draft"
+                    ? `
+                <button onclick="resumeOrder()" class="w-full px-3 lg:px-4 py-2 lg:py-2.5 bg-orange-500 text-white rounded-xl text-xs lg:text-sm font-medium hover:bg-orange-600 transition flex items-center justify-center">
                     <svg class="w-3.5 h-3.5 lg:w-4 lg:h-4 mr-1.5 lg:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-.274A1 1 0 0010.52 12l.27 3.397a1 1 0 001.106 1.035l3.197-.274a1 1 0 00.894-1.036l-.27-3.397a1 1 0 00-1.036-.557z"/>
                     </svg>
                     Resume di POS
                 </button>
             `
-            : `
+                    : `
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="printOrder()" class="px-3 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-xl text-xs lg:text-sm font-medium hover:bg-gray-50 transition flex items-center justify-center">
                         <svg class="w-3.5 h-3.5 lg:w-4 lg:h-4 mr-1.5 lg:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -472,7 +473,7 @@ function renderOrderDetail(order) {
                     </button>
                 </div>
             `
-        }
+            }
         </div>
     `;
 
@@ -489,7 +490,9 @@ function printOrder() {
     if (!currentOrderDetail) return;
 
     const receiptWindow = window.open("", "_blank", "width=400,height=600");
-    const itemsHtml = currentOrderDetail.items.map(item => `
+    const itemsHtml = currentOrderDetail.items
+        .map(
+            (item) => `
         <div class="flex items-center justify-between">
             <div class="">
                 <p class="text-sm font-semibold text-xl">${item.name}</p>
@@ -497,7 +500,9 @@ function printOrder() {
             </div>
             <p class="text-sm text-xl font-[500]">${ordersFormatCurrency(item.price * item.qty)}</p>
         </div>
-    `).join("");
+    `,
+        )
+        .join("");
 
     const receiptHtml = `
 <!doctype html>

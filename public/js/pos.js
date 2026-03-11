@@ -268,7 +268,7 @@ function renderCart() {
             html += `
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                     <div class="flex items-center space-x-3 flex-1 min-w-0">
-                        <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <span class="text-lg">📦</span>
                         </div>
                         <div class="min-w-0">
@@ -338,10 +338,10 @@ function filterByCategory(category) {
 
     document.querySelectorAll(".category-tab").forEach((tab) => {
         if (tab.dataset.category === category) {
-            tab.classList.add("bg-indigo-600", "text-white");
+            tab.classList.add("bg-orange-500", "text-white");
             tab.classList.remove("text-gray-600", "hover:bg-gray-100");
         } else {
-            tab.classList.remove("bg-indigo-600", "text-white");
+            tab.classList.remove("bg-orange-500", "text-white");
             tab.classList.add("text-gray-600", "hover:bg-gray-100");
         }
     });
@@ -374,7 +374,7 @@ function loadProducts(reset = false) {
             loading.classList.add("hidden");
 
             data.products.forEach((product) => {
-                console.log("DEBUG PRODUCT NAME ", routeProducts)
+                console.log("DEBUG PRODUCT NAME ", routeProducts);
 
                 const div = document.createElement("div");
                 div.className =
@@ -394,8 +394,8 @@ function loadProducts(reset = false) {
                         ${product.category.name}
                     </div>
                     <h3 class="font-semibold text-gray-900 mb-1 truncate" title="${product?.name}">${product?.name?.substring(0, 20)}${product?.name?.length > 20 ? "..." : ""}</h3>
-                    <p class="text-xl font-bold text-indigo-600">${formatCurrency(parseFloat(product.price))}</p>
-                    <button class="absolute bottom-4 right-4 p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg">
+                    <p class="text-xl font-bold text-orange-500">${formatCurrency(parseFloat(product.price))}</p>
+                    <button class="absolute bottom-4 right-4 p-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
                         </svg>
@@ -411,7 +411,7 @@ function loadProducts(reset = false) {
                     loadMoreEl.id = "loadMoreContainer";
                     loadMoreEl.className = "flex justify-center py-4";
                     loadMoreEl.innerHTML = `
-                        <button onclick="loadMoreProducts()" class="px-6 py-2.5 bg-indigo-100 text-indigo-600 rounded-xl hover:bg-indigo-200 font-medium transition">
+                        <button onclick="loadMoreProducts()" class="px-6 py-2.5 bg-orange-100 text-orange-500 rounded-xl hover:bg-orange-200 font-medium transition">
                             Load More Products
                         </button>
                     `;
@@ -423,7 +423,7 @@ function loadProducts(reset = false) {
             }
         })
         .catch((e) => {
-            console.error(e, " failed")
+            console.error(e, " failed");
             loading.classList.add("hidden");
             if (!grid.children.length) {
                 grid.innerHTML = `<div class="col-span-full text-center text-gray-400 py-10">Tidak dapat memuat produk saat offline</div>`;
@@ -477,15 +477,19 @@ function printReceipt() {
     if (!lastTransaction) return;
 
     const receiptWindow = window.open("", "_blank", "width=400,height=600");
-    const itemsHtml = lastTransaction.items.map(item => `
-        <div class="flex items-center justify-between">
-            <div class="">
-                <p class="text-sm font-semibold text-xl">${item.name}</p>
+    const itemsHtml = lastTransaction.items
+        .map(
+            (item) => `
+        <div class="flex items-start justify-between gap-3">
+            <div class="flex-1 break-words">
+                <p class="text-sm font-semibold text-xl leading-tight">${item.name}</p>
                 <p class="text-sm font-semibold">${item.qty}x ${formatCurrency(item.price)}</p>
             </div>
-            <p class="text-sm text-xl font-[500]">${formatCurrency(item.price * item.qty)}</p>
+            <p class="text-sm text-xl font-[500] whitespace-nowrap flex-shrink-0">${formatCurrency(item.price * item.qty)}</p>
         </div>
-    `).join("");
+    `,
+        )
+        .join("");
 
     const receiptHtml = `
 <!doctype html>
@@ -505,6 +509,7 @@ function printReceipt() {
     <body class="bg-gray-100">
         <div class="w-[21rem] mx-auto p-4 bg-white shadow-lg print:shadow-none print:w-full">
             <div class="flex items-center justify-center flex-col">
+                <img src="/properties/logo_1.png" alt="OH DERIN Logo" class="w-20 h-20 mb-3 object-contain">
                 <h1 class="font-bold text-3xl">OH DERIN</h1>
                 <p class="text-sm font-semibold">Cafe & Restaurant</p>
             </div>
@@ -516,7 +521,7 @@ function printReceipt() {
                 </div>
                 <div class="flex items-center justify-between">
                     <p class="text-xs font-semibold">Tanggal</p>
-                    <p class="text-xs font-semibold">${new Date().toLocaleString('id-ID')}</p>
+                    <p class="text-xs font-semibold">${new Date().toLocaleString("id-ID")}</p>
                 </div>
                 <div class="flex items-center justify-between">
                     <p class="text-xs font-semibold">Kasir</p>
@@ -624,7 +629,8 @@ function processCheckout() {
     btn.textContent = "Processing...";
     const { total } = calculateTotals();
 
-    const paidValue = parseFloat(document.getElementById("paidAmountInput").value) || total;
+    const paidValue =
+        parseFloat(document.getElementById("paidAmountInput").value) || total;
     const changeValue = paidValue - total;
     const payload = {
         items: cart,
@@ -663,7 +669,10 @@ function processCheckout() {
             btn.textContent = "Proses Pembayaran";
 
             if (data.success) {
-                const paidValue = parseFloat(document.getElementById("paidAmountInput").value) || total;
+                const paidValue =
+                    parseFloat(
+                        document.getElementById("paidAmountInput").value,
+                    ) || total;
                 const changeValue = Math.max(0, paidValue - total);
 
                 // Save transaction details for printing
@@ -674,7 +683,7 @@ function processCheckout() {
                     paid: paidValue,
                     change: changeValue,
                     paymentMethod: selectedPaymentMethod,
-                    orderType: selectedOrderType
+                    orderType: selectedOrderType,
                 };
 
                 hidePaymentModal();
@@ -794,7 +803,7 @@ function loadDraftCount() {
                 }
             }
         })
-        .catch(() => { });
+        .catch(() => {});
 }
 
 function showDraftsModal() {

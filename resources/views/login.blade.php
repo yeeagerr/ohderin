@@ -10,7 +10,7 @@
     <h1> class="text-2xl font-bold text-center mb-6">LOGIN </h1>
 
     <form action="/login" method="POST" class="space-y-4">
-        <input>
+        <input
         type="text"
         name="username"
         placeholder="username"
