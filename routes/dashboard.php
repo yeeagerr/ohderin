@@ -18,6 +18,7 @@ Route::delete('/dashboard/categories/{category}', [CategoryController::class, 'd
 
 Route::get('/dashboard/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/dashboard/products/search', [ProductController::class, 'searchProducts'])->name('products.search');
+Route::get('/dashboard/products/{product}/data', [ProductController::class, 'getProduct'])->name('products.data');
 Route::post('/dashboard/products', [ProductController::class, 'store'])->name('products.store');
 Route::put('/dashboard/products/{product}', [ProductController::class, 'update'])->name('products.update');
 Route::delete('/dashboard/products/{product}', [ProductController::class, 'destroy'])->name('products.delete');

@@ -10,6 +10,7 @@ class Product extends Model
         'name',
         'category_id',
         'price',
+        'image',
         'is_package',
         'is_active'
     ];

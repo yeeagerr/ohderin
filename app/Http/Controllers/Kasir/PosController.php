@@ -58,11 +58,24 @@ class PosController extends Controller
      */
     public function index()
     {
+        // Only show products with complete recipe (with quantity set) or packages
         $products = Product::where('is_active', true)
+            ->where(function ($q) {
+                $q->where('is_package', true)
+                    ->orWhereHas('recipe', function ($subQ) {
+                        $subQ->whereNotNull('quantity');
+                    });
+            })
             ->orderBy('name')
             ->paginate(20);
 
         $categories = Product::where('products.is_active', true)
+            ->where(function ($q) {
+                $q->where('is_package', true)
+                    ->orWhereHas('recipe', function ($subQ) {
+                        $subQ->whereNotNull('quantity');
+                    });
+            })
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->select('categories.id', 'categories.name')
             ->distinct()
@@ -77,7 +90,13 @@ class PosController extends Controller
      */
     public function getProducts(Request $request)
     {
-        $query = Product::with('category')->where('is_active', true);
+        $query = Product::with('category')->where('is_active', true)
+            ->where(function ($q) {
+                $q->where('is_package', true)
+                    ->orWhereHas('recipe', function ($subQ) {
+                        $subQ->whereNotNull('quantity');
+                    });
+            });
 
         // Search by name
         if ($request->filled('search')) {
@@ -183,6 +202,12 @@ class PosController extends Controller
     public function getCategories()
     {
         $categories = Product::where('products.is_active', true)
+            ->where(function ($q) {
+                $q->where('is_package', true)
+                    ->orWhereHas('recipe', function ($subQ) {
+                        $subQ->whereNotNull('quantity');
+                    });
+            })
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->select('categories.id', 'categories.name')
             ->distinct()

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Recipe extends Model
 {
-    protected $fillable = ['product_id'];
+    protected $fillable = ['product_id', 'quantity'];
 
     public function product()
     {

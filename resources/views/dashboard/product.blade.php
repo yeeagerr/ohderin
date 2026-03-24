@@ -156,6 +156,7 @@
                         <th class="text-left py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Kategori</th>
                         <th class="text-right py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Harga</th>
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipe</th>
+                        <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Resep</th>
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Aksi</th>
                     </tr>
@@ -207,6 +208,27 @@
                                     </svg>
                                     Reguler
                                 </span>
+                            @endif
+                        </td>
+                        <td class="py-4 px-6 text-center">
+                            @if(!$product->is_package)
+                                @if($product->recipe && $product->recipe->quantity !== null)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Qty: {{ number_format($product->recipe->quantity, 2, '.', '') }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-semibold">
+                                        <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                        </svg>
+                                        Belum
+                                    </span>
+                                @endif
+                            @else
+                                <span class="text-xs text-gray-400">-</span>
                             @endif
                         </td>
                         <td class="py-4 px-6 text-center">
@@ -371,6 +393,7 @@
 <!-- Store product data for dropdowns -->
 <script>
     const allProductsData = {!! json_encode($allProducts) !!};
+    const rawMaterialsData = {!! json_encode($rawMaterials ?? []) !!};
 </script>
 
 <!-- Modal Tambah -->
@@ -388,9 +411,27 @@
                     </button>
                 </div>
             </div>
-            <form action="{{ route('products.store') }}" method="POST" class="p-6" id="addProductForm">
+            <form action="{{ route('products.store') }}" method="POST" class="p-6" id="addProductForm" enctype="multipart/form-data">
                 @csrf
                 <div class="space-y-5">
+                    <!-- Image Upload -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Gambar Produk</label>
+                        <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-orange-400 hover:bg-orange-50/50 transition cursor-pointer" id="addImageDropZone">
+                            <input type="file" name="image" id="addImageInput" class="hidden" accept="image/*" onchange="previewImage(event, 'addImagePreview')">
+                            <div id="addImagePreview" class="hidden">
+                                <img src="" alt="Preview" class="max-w-full h-32 mx-auto mb-2 rounded">
+                                <button type="button" onclick="clearImage('add')" class="text-sm text-red-500 hover:text-red-600">Ganti Gambar</button>
+                            </div>
+                            <div class="flex flex-col items-center gap-2" id="addImagePlaceholder">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <p class="text-sm font-medium text-gray-700">Drag & Drop atau <span class="text-orange-500">klik untuk upload</span></p>
+                                <p class="text-xs text-gray-500">(JPG, PNG, WebP - Max 5MB)</p>
+                            </div>
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Produk <span class="text-red-500">*</span></label>
                         <input type="text" name="name" required
@@ -440,6 +481,26 @@
                             </div>
                         </label>
                     </div>
+                    <!-- Recipe Section (Hidden for packages) -->
+                    <div id="addRecipeSection" class="hidden border-t border-gray-200 pt-5">
+                        <h4 class="text-sm font-bold text-gray-700 mb-4">📋 Resep Produk</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity Resep</label>
+                                <input type="number" name="recipe_quantity" min="0.0001" step="0.0001" 
+                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
+                                       placeholder="Masukkan quantity">
+                                <p class="text-xs text-gray-500 mt-1">⚠️ Jika kosong, produk tidak akan muncul di kasir</p>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-sm font-semibold text-gray-700">Bahan-Bahan</label>
+                                    <button type="button" onclick="addRecipeItem('add')" class="text-sm text-orange-600 hover:text-orange-700 font-medium">+ Tambah</button>
+                                </div>
+                                <div id="addRecipeItemsContainer" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- List Produk Paket -->
                     <div id="packageProductsList" class="mt-4 hidden">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Daftar Produk Paket</label>
@@ -481,10 +542,29 @@
                     </button>
                 </div>
             </div>
-            <form id="editForm" method="POST" class="p-6">
+            <form id="editForm" method="POST" class="p-6" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 <div class="space-y-5">
+                    <!-- Image Upload -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Gambar Produk</label>
+                        <div id="editImagePreviewContainer" class="mb-3"></div>
+                        <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/50 transition cursor-pointer" id="editImageDropZone">
+                            <input type="file" name="image" id="editImageInput" class="hidden" accept="image/*" onchange="previewImage(event, 'editImagePreview')">
+                            <div id="editImagePreview" class="hidden">
+                                <img src="" alt="Preview" class="max-w-full h-32 mx-auto mb-2 rounded">
+                                <button type="button" onclick="clearImage('edit')" class="text-sm text-red-500 hover:text-red-600">Ganti Gambar</button>
+                            </div>
+                            <div class="flex flex-col items-center gap-2" id="editImagePlaceholder">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                <p class="text-sm font-medium text-gray-700">Drag & Drop atau <span class="text-blue-500">klik untuk upload</span></p>
+                                <p class="text-xs text-gray-500">(JPG, PNG, WebP - Max 5MB)</p>
+                            </div>
+                        </div>
+                    </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Produk <span class="text-red-500">*</span></label>
                         <input type="text" name="name" id="editName" required
@@ -530,6 +610,26 @@
                                 <p class="text-xs text-gray-400">Tampilkan di kasir</p>
                             </div>
                         </label>
+                    </div>
+                    <!-- Recipe Section (Hidden for packages) -->
+                    <div id="editRecipeSection" class="hidden border-t border-gray-200 pt-5">
+                        <h4 class="text-sm font-bold text-gray-700 mb-4">📋 Resep Produk</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity Resep</label>
+                                <input type="number" name="recipe_quantity" id="editRecipeQuantity" min="0.0001" step="0.0001" 
+                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                                       placeholder="Masukkan quantity">
+                                <p class="text-xs text-gray-500 mt-1">⚠️ Jika kosong, produk tidak akan muncul di kasir</p>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label class="block text-sm font-semibold text-gray-700">Bahan-Bahan</label>
+                                    <button type="button" onclick="addRecipeItem('edit')" class="text-sm text-blue-600 hover:text-blue-700 font-medium">+ Tambah</button>
+                                </div>
+                                <div id="editRecipeItemsContainer" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                            </div>
+                        </div>
                     </div>
                     <!-- List Produk Paket Edit -->
                     <div id="editPackageProductsList" class="mt-4 hidden">
@@ -600,14 +700,16 @@
         document.body.style.overflow = 'auto';
     }
 
-    // Handle package products list visibility in Add Modal
+    // Handle package/recipe visibility in Add Modal
     const addIsPackageCheckbox = document.querySelector('#addModal input[name="is_package"]');
     const packageProductsList = document.getElementById('packageProductsList');
     
     addIsPackageCheckbox.addEventListener('change', (e) => {
         const container = document.getElementById('packageItemsContainer');
+        const recipeSection = document.getElementById('addRecipeSection');
         if (e.target.checked) {
             packageProductsList.classList.remove('hidden');
+            recipeSection.classList.add('hidden');
             
             // Initialize with one empty row if container is empty
             if (container.children.length === 0) {
@@ -619,20 +721,24 @@
             }
         } else {
             packageProductsList.classList.add('hidden');
+            recipeSection.classList.remove('hidden');
             // Optionally clear items when unchecking
             container.innerHTML = '';
         }
     });
 
-    // Handle package products list visibility in Edit Modal
+    // Handle package/recipe visibility in Edit Modal
     const editIsPackageCheckbox = document.querySelector('#editModal input[name="is_package"]');
     const editPackageProductsList = document.getElementById('editPackageProductsList');
     
     editIsPackageCheckbox.addEventListener('change', (e) => {
+        const editRecipeSection = document.getElementById('editRecipeSection');
         if (e.target.checked) {
             editPackageProductsList.classList.remove('hidden');
+            editRecipeSection.classList.add('hidden');
         } else {
             editPackageProductsList.classList.add('hidden');
+            editRecipeSection.classList.remove('hidden');
         }
     });
 
@@ -738,52 +844,112 @@
     });
 
     function openEditModal(product) {
-        document.getElementById('editForm').action = `/dashboard/products/${product.id}`;
-        document.getElementById('editName').value = product.name;
-        document.getElementById('editCategory').value = product.category_id;
-        document.getElementById('editPrice').value = product.price;
-        document.getElementById('editIsPackage').checked = product.is_package;
-        document.getElementById('editIsActive').checked = product.is_active;
-        
-        // Clear existing package items
-        const editContainer = document.getElementById('editPackageItemsContainer');
-        editContainer.innerHTML = '';
-        
-        // Reset product row counter when opening modal
-        productRowCounter = 0;
-        
-        // Show/hide package products list based on is_package
-        if (product.is_package) {
-            document.getElementById('editPackageProductsList').classList.remove('hidden');
-            
-            // Load existing package items if available
-            console.log("PRODUCT PACKAGES  = ", product)
-            if (product.package_items && product.package_items.length > 0) {
-                product.package_items.forEach(item => {
-                    const foundProduct = allProductsData.find(p => p.id === item.product_id);
-                    const newRow = document.createElement('div');
-                    newRow.innerHTML = createProductRow(item.product_id, foundProduct ? foundProduct.name : '', 'blue');
-                    const qtyInput = newRow.querySelector('input[name*="[quantity]"]');
-                    if (qtyInput) {
-                        qtyInput.value = item.qty;
+        // Fetch full product data including recipe
+        fetch(`/dashboard/products/${product.id}/data`)
+            .then(res => res.json())
+            .then(fullProduct => {
+                document.getElementById('editForm').action = `/dashboard/products/${fullProduct.id}`;
+                document.getElementById('editName').value = fullProduct.name;
+                document.getElementById('editCategory').value = fullProduct.category_id;
+                document.getElementById('editPrice').value = fullProduct.price;
+                document.getElementById('editIsPackage').checked = fullProduct.is_package;
+                document.getElementById('editIsActive').checked = fullProduct.is_active;
+                
+                // Handle image display
+                if (fullProduct.image) {
+                    const container = document.getElementById('editImagePreviewContainer');
+                    container.innerHTML = `
+                        <div class="mb-2 p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                            <img src="${fullProduct.image}" alt="Current" class="h-16 rounded">
+                            <button type="button" onclick="clearImage('edit')" class="text-xs text-red-600 hover:text-red-700">Hapus</button>
+                        </div>
+                    `;
+                }
+                
+                // Clear existing package items
+                const editContainer = document.getElementById('editPackageItemsContainer');
+                editContainer.innerHTML = '';
+                
+                // Reset product row counter when opening modal
+                productRowCounter = 0;
+                
+                // Show/hide package products list and recipe section based on is_package
+                if (fullProduct.is_package) {
+                    document.getElementById('editPackageProductsList').classList.remove('hidden');
+                    document.getElementById('editRecipeSection').classList.add('hidden');
+                    
+                    // Load existing package items if available
+                    if (fullProduct.package_items && fullProduct.package_items.length > 0) {
+                        fullProduct.package_items.forEach(item => {
+                            const foundProduct = allProductsData.find(p => p.id === item.product_id);
+                            const newRow = document.createElement('div');
+                            newRow.innerHTML = createProductRow(item.product_id, foundProduct ? foundProduct.name : '', 'blue');
+                            const qtyInput = newRow.querySelector('input[name*="[quantity]"]');
+                            if (qtyInput) {
+                                qtyInput.value = item.qty;
+                            }
+                            editContainer.appendChild(newRow);
+                            attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
+                            attachProductSearchEvent(newRow);
+                        });
+                    } else {
+                        // Add one empty row
+                        const newRow = document.createElement('div');
+                        newRow.innerHTML = createProductRow(null, null, 'blue');
+                        editContainer.appendChild(newRow);
+                        attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
+                        attachProductSearchEvent(newRow);
                     }
-                    editContainer.appendChild(newRow);
-                    attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
-                    attachProductSearchEvent(newRow);
-                });
-            } else {
-                // Add one empty row
-                const newRow = document.createElement('div');
-                newRow.innerHTML = createProductRow(null, null, 'blue');
-                editContainer.appendChild(newRow);
-                attachDeleteEvent(newRow.querySelector('.deleteProductBtn'));
-                attachProductSearchEvent(newRow);
-            }
-        } else {
-            document.getElementById('editPackageProductsList').classList.add('hidden');
-        }
-        
-        openModal('editModal');
+                } else {
+                    document.getElementById('editPackageProductsList').classList.add('hidden');
+                    document.getElementById('editRecipeSection').classList.remove('hidden');
+                    
+                    // Load recipe data
+                    if (fullProduct.recipe) {
+                        document.getElementById('editRecipeQuantity').value = fullProduct.recipe.quantity || '';
+                        
+                        // Load recipe items
+                        const recipeContainer = document.getElementById('editRecipeItemsContainer');
+                        recipeContainer.innerHTML = '';
+                        if (fullProduct.recipe.items && fullProduct.recipe.items.length > 0) {
+                            fullProduct.recipe.items.forEach((item, index) => {
+                                recipeItemCounter.edit = index;
+                                
+                                // Build options from rawMaterialsData
+                                let optionsHtml = '<option value="">Pilih Bahan</option>';
+                                rawMaterialsData.forEach(material => {
+                                    const selected = material.id == item.raw_material_id ? 'selected' : '';
+                                    optionsHtml += `<option value="${material.id}" ${selected}>${material.name} (${material.unit})</option>`;
+                                });
+                                
+                                const itemDiv = document.createElement('div');
+                                itemDiv.className = 'flex items-center gap-2 bg-gray-50 p-3 rounded-lg';
+                                itemDiv.innerHTML = `
+                                    <select name="recipe_items[${index}][raw_material_id]" required
+                                            class="flex-1 px-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                        ${optionsHtml}
+                                    </select>
+                                    <input type="number" name="recipe_items[${index}][qty]" min="0.0001" step="0.0001" required
+                                           value="${item.qty}"
+                                           class="w-20 px-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                           placeholder="Qty">
+                                    <button type="button" onclick="this.parentElement.remove()" 
+                                            class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm rounded transition">
+                                        Hapus
+                                    </button>
+                                `;
+                                recipeContainer.appendChild(itemDiv);
+                            });
+                        }
+                    }
+                }
+                
+                openModal('editModal');
+            })
+            .catch(error => {
+                console.error('Error loading product:', error);
+                alert('Error loading product data');
+            });
     }
 
     function openDeleteModal(id, name) {
@@ -796,6 +962,75 @@
         if (confirm('Yakin ingin mengubah status produk ini?')) {
             document.getElementById('toggleForm' + id).submit();
         }
+    }
+
+    // Image handling
+    function previewImage(event, previewId) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById(previewId);
+                const img = preview.querySelector('img');
+                img.src = e.target.result;
+                preview.classList.remove('hidden');
+                const placeholder = document.getElementById(previewId.includes('edit') ? 'editImagePlaceholder' : 'addImagePlaceholder');
+                if (placeholder) placeholder.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function clearImage(type) {
+        const input = document.getElementById(type + 'ImageInput');
+        const preview = document.getElementById(type + 'ImagePreview');
+        const placeholder = document.getElementById(type + 'ImagePlaceholder');
+        input.value = '';
+        preview.classList.add('hidden');
+        if (placeholder) placeholder.classList.remove('hidden');
+    }
+
+    function handleImageDrop(event, inputId) {
+        event.preventDefault();
+        event.stopPropagation();
+        const files = event.dataTransfer.files;
+        if (files.length > 0) {
+            document.getElementById(inputId).files = files;
+            const changeEvent = new Event('change', { bubbles: true });
+            document.getElementById(inputId).dispatchEvent(changeEvent);
+        }
+    }
+
+    // Recipe item management
+    let recipeItemCounter = { add: 0, edit: 0 };
+
+    function addRecipeItem(type) {
+        const containerId = type + 'RecipeItemsContainer';
+        const container = document.getElementById(containerId);
+        const index = ++recipeItemCounter[type];
+        
+        // Build options from rawMaterialsData
+        let optionsHtml = '<option value="">Pilih Bahan</option>';
+        rawMaterialsData.forEach(material => {
+            optionsHtml += `<option value="${material.id}">${material.name} (${material.unit})</option>`;
+        });
+        
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'flex items-center gap-2 bg-gray-50 p-3 rounded-lg';
+        itemDiv.innerHTML = `
+            <select name="recipe_items[${index}][raw_material_id]" required
+                    class="flex-1 px-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-${type === 'add' ? 'orange' : 'blue'}-400">
+                ${optionsHtml}
+            </select>
+            <input type="number" name="recipe_items[${index}][qty]" min="0.0001" step="0.0001" required
+                   class="w-20 px-3 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-${type === 'add' ? 'orange' : 'blue'}-400"
+                   placeholder="Qty">
+            <button type="button" onclick="this.parentElement.remove()" 
+                    class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm rounded transition">
+                Hapus
+            </button>
+        `;
+        container.appendChild(itemDiv);
     }
 
     // Auto close alert
