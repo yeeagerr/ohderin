@@ -349,7 +349,7 @@ function renderOrderDetail(order) {
                     </div>
                     <div>
                         <p class="font-medium text-gray-900 text-xs lg:text-sm">${item.name}</p>
-                        <p class="text-[10px] lg:text-xs text-gray-500">${item.category} · Qty: ${item.qty}</p>
+                        <p class="text-[10px] lg:text-xs text-gray-500">${item.category.name} · Qty: ${item.qty}</p>
                         ${item.note ? `<p class="text-[10px] text-gray-400 italic">${item.note}</p>` : ""}
                     </div>
                 </div>
