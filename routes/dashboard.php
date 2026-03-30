@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\RawMaterialController;
 use App\Http\Controllers\RecipeController;
+use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\StockOpnameController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,4 +40,12 @@ Route::prefix('dashboard')->group(function () {
     Route::post('stock-opnames/{stockOpname}/approve', [StockOpnameController::class, 'approve'])->name('stock-opnames.approve');
     Route::post('stock-opnames/{stockOpname}/reject', [StockOpnameController::class, 'reject'])->name('stock-opnames.reject');
     Route::get('stock-opnames/{stockOpname}/print', [StockOpnameController::class, 'print'])->name('stock-opnames.print');
+});
+
+// Sales Reports
+Route::prefix('dashboard/reports')->group(function () {
+    Route::get('sales', [SalesReportController::class, 'index'])->name('sales.index');
+    Route::get('transactions', [SalesReportController::class, 'transactions'])->name('transactions.index');
+    Route::get('daily-summary', [SalesReportController::class, 'dailySummary'])->name('daily-summary.index');
+    Route::get('export', [SalesReportController::class, 'export'])->name('sales.export');
 });

@@ -116,22 +116,27 @@
         <div class="mb-6">
             <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Laporan</p>
             <nav class="flex flex-col gap-0.5">
-                <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
+                <a href="{{ route('transactions.index') }}" class="nav-link {{ request()->is('dashboard/reports/transactions*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
-                        <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+                        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6m-6 4h6m-10-5h.01M7 16h.01" />
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">TRANSAKSI</span>
                 </a>
-                <a href="#" class="nav-link flex items-center gap-3 px-3 py-2.5">
+                <a href="{{ route('sales.index') }}" class="nav-link {{ request()->is('dashboard/reports/sales*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
-                        <path d="M18 20V10M12 20V4M6 20v-6" />
+                        <path d="M3 3v18a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2zm9 4v10m-4-6v6m8-2v4" />
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">LAPORAN PENJUALAN</span>
                 </a>
+                {{-- <a href="{{ route('daily-summary.index') }}" class="nav-link {{ request()->is('dashboard/reports/daily-summary*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M8 7h8m-8 0H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3M9 11h6m-6 4h6" />
+                    </svg>
+                    <span class="nav-title text-sm tracking-[2px]">RINGKASAN HARIAN</span>
+                </a> --}}
             </nav>
         </div>
 
