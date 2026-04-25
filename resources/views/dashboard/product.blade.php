@@ -411,118 +411,120 @@
                     </button>
                 </div>
             </div>
-            <form action="{{ route('products.store') }}" method="POST" class="p-6" id="addProductForm" enctype="multipart/form-data">
-                @csrf
-                <div class="space-y-5">
-                    <!-- Image Upload -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Gambar Produk</label>
-                        <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-orange-400 hover:bg-orange-50/50 transition cursor-pointer" id="addImageDropZone">
-                            <input type="file" name="image" id="addImageInput" class="hidden" accept="image/*" onchange="previewImage(event, 'addImagePreview')">
-                            <div id="addImagePreview" class="hidden">
-                                <img src="" alt="Preview" class="max-w-full h-32 mx-auto mb-2 rounded">
-                                <button type="button" onclick="clearImage('add')" class="text-sm text-red-500 hover:text-red-600">Ganti Gambar</button>
-                            </div>
-                            <div class="flex flex-col items-center gap-2" id="addImagePlaceholder">
-                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                                <p class="text-sm font-medium text-gray-700">Drag & Drop atau <span class="text-orange-500">klik untuk upload</span></p>
-                                <p class="text-xs text-gray-500">(JPG, PNG, WebP - Max 5MB)</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Produk <span class="text-red-500">*</span></label>
-                        <input type="text" name="name" required
-                               class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
-                               placeholder="Contoh: Nasi Goreng Spesial">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
+            <div class="h-[85vh] overflow-auto">
+                <form action="{{ route('products.store') }}" method="POST" class="p-6" id="addProductForm" enctype="multipart/form-data">
+                    @csrf
+                    <div class="space-y-5">
+                        <!-- Image Upload -->
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Kategori <span class="text-red-500">*</span></label>
-                            <select name="category_id" required
-                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition">
-                                <option value="">Pilih Kategori</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Harga <span class="text-red-500">*</span></label>
-                            <div class="relative">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-                                <input type="number" name="price" required min="0" step="500"
-                                       class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
-                                       placeholder="0">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-6">
-                        <label class="flex items-center gap-3 cursor-pointer group">
-                            <div class="relative">
-                                <input type="checkbox" name="is_package" value="1" class="peer sr-only">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Paket</span>
-                                <p class="text-xs text-gray-400">Produk berupa paket/bundle</p>
-                            </div>
-                        </label>
-                        <label class="flex items-center gap-3 cursor-pointer group">
-                            <div class="relative">
-                                <input type="checkbox" name="is_active" value="1" checked class="peer sr-only">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Aktif</span>
-                                <p class="text-xs text-gray-400">Tampilkan di kasir</p>
-                            </div>
-                        </label>
-                    </div>
-                    <!-- Recipe Section (Hidden for packages) -->
-                    <div id="addRecipeSection" class="hidden border-t border-gray-200 pt-5">
-                        <h4 class="text-sm font-bold text-gray-700 mb-4">📋 Resep Produk</h4>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity Resep</label>
-                                <input type="number" name="recipe_quantity" min="0.0001" step="0.0001" 
-                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
-                                       placeholder="Masukkan quantity">
-                                <p class="text-xs text-gray-500 mt-1">⚠️ Jika kosong, produk tidak akan muncul di kasir</p>
-                            </div>
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <label class="block text-sm font-semibold text-gray-700">Bahan-Bahan</label>
-                                    <button type="button" onclick="addRecipeItem('add')" class="text-sm text-orange-600 hover:text-orange-700 font-medium">+ Tambah</button>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Gambar Produk</label>
+                            <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-orange-400 hover:bg-orange-50/50 transition cursor-pointer" id="addImageDropZone">
+                                <input type="file" name="image" id="addImageInput" class="hidden" accept="image/*" onchange="previewImage(event, 'addImagePreview')">
+                                <div id="addImagePreview" class="hidden">
+                                    <img src="" alt="Preview" class="max-w-full h-32 mx-auto mb-2 rounded">
+                                    <button type="button" onclick="clearImage('add')" class="text-sm text-red-500 hover:text-red-600">Ganti Gambar</button>
                                 </div>
-                                <div id="addRecipeItemsContainer" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                                <div class="flex flex-col items-center gap-2" id="addImagePlaceholder">
+                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="text-sm font-medium text-gray-700">Drag & Drop atau <span class="text-orange-500">klik untuk upload</span></p>
+                                    <p class="text-xs text-gray-500">(JPG, PNG, WebP - Max 5MB)</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <!-- List Produk Paket -->
-                    <div id="packageProductsList" class="mt-4 hidden">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Daftar Produk Paket</label>
-                        <div class="space-y-2 max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50" id="packageItemsContainer">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Produk <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" required
+                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
+                                placeholder="Contoh: Nasi Goreng Spesial">
                         </div>
-                        <button type="button" id="addPackageProductBtn" 
-                                class="mt-3 px-4 py-2 text-sm text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow">
-                            Tambah Produk
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Kategori <span class="text-red-500">*</span></label>
+                                <select name="category_id" required
+                                        class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition">
+                                    <option value="">Pilih Kategori</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Harga <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                                    <input type="number" name="price" required min="0" step="500"
+                                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
+                                        placeholder="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative">
+                                    <input type="checkbox" name="is_package" value="1" class="peer sr-only">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Paket</span>
+                                    <p class="text-xs text-gray-400">Produk berupa paket/bundle</p>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative">
+                                    <input type="checkbox" name="is_active" value="1" checked class="peer sr-only">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Aktif</span>
+                                    <p class="text-xs text-gray-400">Tampilkan di kasir</p>
+                                </div>
+                            </label>
+                        </div>
+                        <!-- Recipe Section (Hidden for packages) -->
+                        <div id="addRecipeSection" class="hidden border-t border-gray-200 pt-5">
+                            <h4 class="text-sm font-bold text-gray-700 mb-4">📋 Resep Produk</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity Resep</label>
+                                    <input type="number" name="recipe_quantity" min="0.0001" step="0.0001" 
+                                        class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
+                                        placeholder="Masukkan quantity">
+                                    <p class="text-xs text-gray-500 mt-1">⚠️ Jika kosong, produk tidak akan muncul di kasir</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <label class="block text-sm font-semibold text-gray-700">Bahan-Bahan</label>
+                                        <button type="button" onclick="addRecipeItem('add')" class="text-sm text-orange-600 hover:text-orange-700 font-medium">+ Tambah</button>
+                                    </div>
+                                    <div id="addRecipeItemsContainer" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- List Produk Paket -->
+                        <div id="packageProductsList" class="mt-4 hidden">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Daftar Produk Paket</label>
+                            <div class="space-y-2 max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50" id="packageItemsContainer">
+                            </div>
+                            <button type="button" id="addPackageProductBtn" 
+                                    class="mt-3 px-4 py-2 text-sm text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow">
+                                Tambah Produk
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 mt-6">
+                        <button type="button" onclick="closeModal('addModal')" 
+                                class="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition">
+                            Batal
+                        </button>
+                        <button type="submit" 
+                                class="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold hover:from-orange-600 hover:to-orange-700 transition shadow-lg shadow-orange-500/30">
+                            Simpan
                         </button>
                     </div>
-                </div>
-                <div class="flex gap-3 mt-6">
-                    <button type="button" onclick="closeModal('addModal')" 
-                            class="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition">
-                        Batal
-                    </button>
-                    <button type="submit" 
-                            class="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold hover:from-orange-600 hover:to-orange-700 transition shadow-lg shadow-orange-500/30">
-                        Simpan
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -542,117 +544,120 @@
                     </button>
                 </div>
             </div>
-            <form id="editForm" method="POST" class="p-6" enctype="multipart/form-data">
-                @csrf
-                @method('PUT')
-                <div class="space-y-5">
-                    <!-- Image Upload -->
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Gambar Produk</label>
-                        <div id="editImagePreviewContainer" class="mb-3"></div>
-                        <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/50 transition cursor-pointer" id="editImageDropZone">
-                            <input type="file" name="image" id="editImageInput" class="hidden" accept="image/*" onchange="previewImage(event, 'editImagePreview')">
-                            <div id="editImagePreview" class="hidden">
-                                <img src="" alt="Preview" class="max-w-full h-32 mx-auto mb-2 rounded">
-                                <button type="button" onclick="clearImage('edit')" class="text-sm text-red-500 hover:text-red-600">Ganti Gambar</button>
-                            </div>
-                            <div class="flex flex-col items-center gap-2" id="editImagePlaceholder">
-                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                                <p class="text-sm font-medium text-gray-700">Drag & Drop atau <span class="text-blue-500">klik untuk upload</span></p>
-                                <p class="text-xs text-gray-500">(JPG, PNG, WebP - Max 5MB)</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Produk <span class="text-red-500">*</span></label>
-                        <input type="text" name="name" id="editName" required
-                               class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
+            <div class="h-[85vh] overflow-auto">
+                <form id="editForm" method="POST" class="p-6" enctype="multipart/form-data">
+                    @csrf
+                    @method('PUT')
+                    <div class="space-y-5">
+                        <!-- Image Upload -->
                         <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Kategori <span class="text-red-500">*</span></label>
-                            <select name="category_id" id="editCategory" required
-                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">Harga <span class="text-red-500">*</span></label>
-                            <div class="relative">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
-                                <input type="number" name="price" id="editPrice" required min="0" step="500"
-                                       class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-6">
-                        <label class="flex items-center gap-3 cursor-pointer group">
-                            <div class="relative">
-                                <input type="checkbox" name="is_package" id="editIsPackage" value="1" class="peer sr-only">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Paket</span>
-                                <p class="text-xs text-gray-400">Produk berupa paket/bundle</p>
-                            </div>
-                        </label>
-                        <label class="flex items-center gap-3 cursor-pointer group">
-                            <div class="relative">
-                                <input type="checkbox" name="is_active" id="editIsActive" value="1" class="peer sr-only">
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Aktif</span>
-                                <p class="text-xs text-gray-400">Tampilkan di kasir</p>
-                            </div>
-                        </label>
-                    </div>
-                    <!-- Recipe Section (Hidden for packages) -->
-                    <div id="editRecipeSection" class="hidden border-t border-gray-200 pt-5">
-                        <h4 class="text-sm font-bold text-gray-700 mb-4">📋 Resep Produk</h4>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity Resep</label>
-                                <input type="number" name="recipe_quantity" id="editRecipeQuantity" min="0.0001" step="0.0001" 
-                                       class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
-                                       placeholder="Masukkan quantity">
-                                <p class="text-xs text-gray-500 mt-1">⚠️ Jika kosong, produk tidak akan muncul di kasir</p>
-                            </div>
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <label class="block text-sm font-semibold text-gray-700">Bahan-Bahan</label>
-                                    <button type="button" onclick="addRecipeItem('edit')" class="text-sm text-blue-600 hover:text-blue-700 font-medium">+ Tambah</button>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Gambar Produk</label>
+                            <div id="editImagePreviewContainer" class="mb-3"></div>
+                            <div class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/50 transition cursor-pointer" id="editImageDropZone">
+                                <input type="file" name="image" id="editImageInput" class="hidden" accept="image/*" onchange="previewImage(event, 'editImagePreview')">
+                                <div id="editImagePreview" class="hidden">
+                                    <img src="" alt="Preview" class="max-w-full h-32 mx-auto mb-2 rounded">
+                                    <button type="button" onclick="clearImage('edit')" class="text-sm text-red-500 hover:text-red-600">Ganti Gambar</button>
                                 </div>
-                                <div id="editRecipeItemsContainer" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                                <div class="flex flex-col items-center gap-2" id="editImagePlaceholder">
+                                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    <p class="text-sm font-medium text-gray-700">Drag & Drop atau <span class="text-blue-500">klik untuk upload</span></p>
+                                    <p class="text-xs text-gray-500">(JPG, PNG, WebP - Max 5MB)</p>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <!-- List Produk Paket Edit -->
-                    <div id="editPackageProductsList" class="mt-4 hidden">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">Daftar Produk Paket</label>
-                        <div class="space-y-2 max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50" id="editPackageItemsContainer">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Nama Produk <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" id="editName" required
+                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
                         </div>
-                        <button type="button" id="editAddPackageProductBtn" 
-                                class="mt-3 px-4 py-2 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow">
-                            Tambah Produk
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Kategori <span class="text-red-500">*</span></label>
+                                <select name="category_id" id="editCategory" required
+                                        class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Harga <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                                    <input type="number" name="price" id="editPrice" required min="0" step="500"
+                                        class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-6">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative">
+                                    <input type="checkbox" name="is_package" id="editIsPackage" value="1" class="peer sr-only">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Paket</span>
+                                    <p class="text-xs text-gray-400">Produk berupa paket/bundle</p>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative">
+                                    <input type="checkbox" name="is_active" id="editIsActive" value="1" class="peer sr-only">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-100 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700 group-hover:text-gray-900">Aktif</span>
+                                    <p class="text-xs text-gray-400">Tampilkan di kasir</p>
+                                </div>
+                            </label>
+                        </div>
+                        <!-- Recipe Section (Hidden for packages) -->
+                        <div id="editRecipeSection" class="hidden border-t border-gray-200 pt-5">
+                            <h4 class="text-sm font-bold text-gray-700 mb-4">📋 Resep Produk</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Quantity Resep</label>
+                                    <input type="number" name="recipe_quantity" id="editRecipeQuantity" min="0.0001" step="0.0001" 
+                                        class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                                        placeholder="Masukkan quantity">
+                                    <p class="text-xs text-gray-500 mt-1">⚠️ Jika kosong, produk tidak akan muncul di kasir</p>
+                                </div>
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <label class="block text-sm font-semibold text-gray-700">Bahan-Bahan</label>
+                                        <button type="button" onclick="addRecipeItem('edit')" class="text-sm text-blue-600 hover:text-blue-700 font-medium">+ Tambah</button>
+                                    </div>
+                                    <div id="editRecipeItemsContainer" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- List Produk Paket Edit -->
+                        <div id="editPackageProductsList" class="mt-4 hidden">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Daftar Produk Paket</label>
+                            <div class="space-y-2 max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50" id="editPackageItemsContainer">
+                            </div>
+                            <button type="button" id="editAddPackageProductBtn" 
+                                    class="mt-3 px-4 py-2 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-xl shadow">
+                                Tambah Produk
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 mt-6">
+                        <button type="button" onclick="closeModal('editModal')" 
+                                class="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition">
+                            Batal
+                        </button>
+                        <button type="submit" 
+                                class="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold hover:from-blue-600 hover:to-blue-700 transition shadow-lg shadow-blue-500/30">
+                            Update
                         </button>
                     </div>
-                </div>
-                <div class="flex gap-3 mt-6">
-                    <button type="button" onclick="closeModal('editModal')" 
-                            class="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50 transition">
-                        Batal
-                    </button>
-                    <button type="submit" 
-                            class="flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold hover:from-blue-600 hover:to-blue-700 transition shadow-lg shadow-blue-500/30">
-                        Update
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
+
         </div>
     </div>
 </div>
@@ -693,6 +698,19 @@
     function openModal(id) {
         document.getElementById(id).classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        
+        // Initialize recipe section visibility when opening Add Modal
+        if (id === 'addModal') {
+            const addIsPackageCheckbox = document.querySelector('#addModal input[name="is_package"]');
+            const recipeSection = document.getElementById('addRecipeSection');
+            const packageProductsList = document.getElementById('packageProductsList');
+            
+            // Show recipe by default, hide package list
+            if (!addIsPackageCheckbox.checked) {
+                recipeSection.classList.remove('hidden');
+                packageProductsList.classList.add('hidden');
+            }
+        }
     }
 
     function closeModal(id) {
@@ -1032,6 +1050,43 @@
         `;
         container.appendChild(itemDiv);
     }
+
+    // Handle drop zone click to open file dialog
+    function setupDropZone(dropZoneId, inputId, color = 'orange') {
+        const dropZone = document.getElementById(dropZoneId);
+        const input = document.getElementById(inputId);
+        const borderColor = color === 'blue' ? 'border-blue-400' : 'border-orange-400';
+        const bgColor = color === 'blue' ? 'bg-blue-50' : 'bg-orange-50';
+
+        // Click to open file dialog
+        dropZone.addEventListener('click', () => {
+            input.click();
+        });
+
+        // Drag and drop events
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.add(borderColor, bgColor);
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove(borderColor, bgColor);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropZone.classList.remove(borderColor, bgColor);
+            handleImageDrop(e, inputId);
+        });
+    }
+
+    // Initialize drop zones
+    setupDropZone('addImageDropZone', 'addImageInput', 'orange');
+    setupDropZone('editImageDropZone', 'editImageInput', 'blue');
 
     // Auto close alert
     setTimeout(() => {
