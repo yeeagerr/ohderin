@@ -4,7 +4,11 @@ let currentCategory = "all";
 let currentSearch = "";
 let selectedOrderType = "dine_in";
 let selectedPaymentMethod = "cash";
+let selectedTableId = null;
+let splitBillGroup = "";
 let currentDraftId = null; //BUAT NANDAIN KALAU INITUH DARI DRAFT!!
+let modifiersList = [];
+let tablesList = [];
 const TAX_RATE = 0.1;
 
 let routeProducts = "";
@@ -19,48 +23,139 @@ const QUEUE_KEY = "pos_offline_queue";
 
 function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    localStorage.setItem(
+        RESUME_KEY,
+        JSON.stringify({
+            items: cart,
+            currentDraftId,
+            selectedOrderType,
+            selectedPaymentMethod,
+            table_id: selectedTableId,
+            split_bill_group: splitBillGroup,
+        }),
+    );
 }
 
 function saveDraft() {
-    localStorage.setItem(RESUME_KEY, JSON.stringify(cart));
+    localStorage.setItem(
+        RESUME_KEY,
+        JSON.stringify({
+            items: cart,
+            currentDraftId,
+            selectedOrderType,
+            selectedPaymentMethod,
+            table_id: selectedTableId,
+            split_bill_group: splitBillGroup,
+        }),
+    );
+}
+
+function setTableId(value) {
+    selectedTableId = value ? parseInt(value, 10) : null;
+    saveCart();
+}
+
+function setSplitBillGroup(value) {
+    splitBillGroup = value || "";
+    saveCart();
+}
+
+function getModifierAdjustment(item) {
+    if (!Array.isArray(item.modifiers)) return 0;
+    return item.modifiers.reduce((sum, modifier) => {
+        if (!modifier.modifier_id) return sum;
+        const selected = modifiersList.find(
+            (m) => m.id === modifier.modifier_id,
+        );
+        if (!selected) return sum;
+        return sum + (parseFloat(selected.price_adjustment) || 0);
+    }, 0);
+}
+
+function toggleSplitBill() {
+    const input = document.getElementById("splitCountInput");
+    if (!input) return;
+    const count = splitBillCount > 1 ? 1 : 2;
+    input.value = count;
+    calculateSplitBill();
+}
+
+function renderSplitBillControls() {
+    const controls = document.getElementById("splitBillControls");
+    const toggleBtn = document.getElementById("toggleSplitBillBtn");
+    if (!controls || !toggleBtn) return;
+    if (splitBillCount > 1) {
+        controls.classList.remove("hidden");
+        toggleBtn.textContent = "Nonaktifkan";
+    } else {
+        controls.classList.add("hidden");
+        toggleBtn.textContent = "Aktifkan";
+    }
+}
+
+function addModifier(itemIndex) {
+    if (!cart[itemIndex]) return;
+    if (!Array.isArray(cart[itemIndex].modifiers)) {
+        cart[itemIndex].modifiers = [];
+    }
+    cart[itemIndex].modifiers.push({ modifier_id: null, value: "" });
+    saveCart();
+    renderCart();
+}
+
+function removeModifier(itemIndex, modifierIndex) {
+    if (!cart[itemIndex] || !Array.isArray(cart[itemIndex].modifiers)) return;
+    cart[itemIndex].modifiers.splice(modifierIndex, 1);
+    saveCart();
+    renderCart();
+}
+
+function updateModifierSelection(itemIndex, modifierIndex, modifierId) {
+    if (!cart[itemIndex] || !Array.isArray(cart[itemIndex].modifiers)) return;
+    cart[itemIndex].modifiers[modifierIndex].modifier_id = modifierId
+        ? parseInt(modifierId, 10)
+        : null;
+    saveCart();
+    renderCart();
+}
+
+function updateModifierValue(itemIndex, modifierIndex, value) {
+    if (!cart[itemIndex] || !Array.isArray(cart[itemIndex].modifiers)) return;
+    cart[itemIndex].modifiers[modifierIndex].value = value;
+    saveCart();
+    renderCart();
 }
 
 function loadCartWithPriority() {
     const draft = localStorage.getItem(RESUME_KEY);
-    const cart = localStorage.getItem(CART_KEY);
+    const storedCart = localStorage.getItem(CART_KEY);
+
+    console.log(`DEBUG DATA DRAFT ${draft}, cart = ${storedCart}`);
 
     if (draft) {
         const draftData = JSON.parse(draft);
         console.log("DRAFT DATA = = ", draftData);
 
-        // Handle format dari orders.js (dengan struktur lengkap)
         if (draftData.items && Array.isArray(draftData.items)) {
-            // Set global state dari draft
-            if (draftData.currentDraftId) {
-                currentDraftId = draftData.currentDraftId;
-            }
-            if (draftData.selectedOrderType) {
-                selectedOrderType = draftData.selectedOrderType;
-            }
-            if (draftData.selectedPaymentMethod) {
-                selectedPaymentMethod = draftData.selectedPaymentMethod;
-            }
+            currentDraftId = draftData.currentDraftId || null;
+            selectedOrderType = draftData.selectedOrderType || "dine_in";
+            selectedPaymentMethod = draftData.selectedPaymentMethod || "cash";
+            selectedTableId = draftData.table_id || null;
+            splitBillGroup = draftData.split_bill_group || "";
             return draftData.items;
         }
 
-        // Handle format lama (hanya items array)
         if (Array.isArray(draftData)) {
             return draftData;
         }
 
-        // Handle format dari resumeDraft modal (items property)
         if (draftData && draftData.items) {
             return draftData.items;
         }
     }
 
-    if (cart) {
-        return JSON.parse(cart);
+    if (storedCart) {
+        return JSON.parse(storedCart);
     }
 
     return [];
@@ -198,6 +293,7 @@ function addToCart(productId, name, price, category) {
             qty: 1,
             category,
             note: null,
+            modifiers: [],
         });
     }
 
@@ -230,13 +326,18 @@ function removeFromCart(productId) {
 function clearCart() {
     cart = [];
     currentDraftId = null;
+    selectedTableId = null;
+    splitBillGroup = "";
     saveCart();
     renderCart();
     updateFloatingBadge();
 }
 
 function calculateTotals() {
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const subtotal = cart.reduce((sum, item) => {
+        const adjustment = getModifierAdjustment(item);
+        return sum + (item.price + adjustment) * item.qty;
+    }, 0);
     const tax = subtotal * TAX_RATE;
     const total = subtotal + tax;
     const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -264,32 +365,85 @@ function renderCart() {
         if (holdBtn) holdBtn.disabled = true;
     } else {
         let html = "";
-        cart.forEach((item) => {
+        cart.forEach((item, index) => {
+            const adjustment = getModifierAdjustment(item);
+            console.log("MODIFIER ITEM = = == ", item);
+            const modRows =
+                Array.isArray(item.modifiers) && item.modifiers.length
+                    ? item.modifiers
+                          .map((modifier, modIndex) => {
+                              const selectedModifier = modifiersList.find(
+                                  (m) => m.id === modifier.modifier_id,
+                              );
+                              const priceInfo = selectedModifier
+                                  ? (parseFloat(
+                                        selectedModifier.price_adjustment,
+                                    ) || 0) >= 0
+                                      ? ` +${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
+                                      : ` ${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
+                                  : "";
+                              return `
+                          <div class="mt-3 p-3 bg-white border border-gray-200 rounded-xl space-y-2">
+                              <div class="grid grid-cols-2 gap-2">
+                                  <select onchange="updateModifierSelection(${index}, ${modIndex}, this.value)" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                                      <option value="">Pilih modifier</option>
+                                      ${modifiersList
+                                          .map(
+                                              (mod) => `
+                                          <option value="${mod.id}" ${modifier.modifier_id === mod.id ? "selected" : ""}>
+                                              ${mod.name}${(parseFloat(mod.price_adjustment) || 0) !== 0 ? ` ${parseFloat(mod.price_adjustment) > 0 ? "+" : ""}${formatCurrency(parseFloat(mod.price_adjustment) || 0)}` : ""}
+                                          </option>
+                                      `,
+                                          )
+                                          .join("")}
+                                  </select>
+                                  <button onclick="removeModifier(${index}, ${modIndex})" class="px-3 py-2 bg-red-100 text-red-600 rounded-xl text-sm">Hapus</button>
+                              </div>
+                              <input
+                                  type="text"
+                                  class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm"
+                                  placeholder="Catatan modifier"
+                                  value="${modifier.value || ""}"
+                                  onchange="updateModifierValue(${index}, ${modIndex}, this.value)"
+                              />
+                              ${priceInfo ? `<p class="text-xs text-gray-500">Harga modifier:${priceInfo}</p>` : ""}
+                          </div>
+                      `;
+                          })
+                          .join("")
+                    : "";
+
             html += `
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                    <div class="flex items-center space-x-3 flex-1 min-w-0">
-                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <span class="text-lg">📦</span>
-                        </div>
-                        <div class="min-w-0">
-                            <h4 class="font-medium text-gray-900 truncate" title="${item.name}">${item?.name?.substring(0, 15) || item.product_name}${item?.name?.length || item.product_name > 15 ? "..." : ""}</h4>
-                            <div class="flex items-center space-x-2 mt-1">
-                                <div class="flex items-center border border-gray-300 rounded-lg">
-                                    <button onclick="updateQuantity(${item.product_id}, -1)" class="px-2 py-1 hover:bg-gray-100 text-gray-600">−</button>
-                                    <span class="px-3 py-1 border-x border-gray-300 text-sm font-medium">${item.qty}</span>
-                                    <button onclick="updateQuantity(${item.product_id}, 1)" class="px-2 py-1 hover:bg-gray-100 text-gray-600">+</button>
+                <div class="space-y-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3 flex-1 min-w-0">
+                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <span class="text-lg">📦</span>
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="font-medium text-gray-900 truncate" title="${item.name}">${item?.name?.substring(0, 15) || item.product_name}${item?.name?.length || item.product_name > 15 ? "..." : ""}</h4>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <div class="flex items-center border border-gray-300 rounded-lg">
+                                        <button onclick="updateQuantity(${item.product_id}, -1)" class="px-2 py-1 hover:bg-gray-100 text-gray-600">−</button>
+                                        <span class="px-3 py-1 border-x border-gray-300 text-sm font-medium">${item.qty}</span>
+                                        <button onclick="updateQuantity(${item.product_id}, 1)" class="px-2 py-1 hover:bg-gray-100 text-gray-600">+</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                        <div class="flex items-center space-x-2">
+                            <p class="font-semibold text-gray-900">${formatCurrency((item.price + adjustment) * item.qty)}</p>
+                            <button onclick="removeFromCart(${item.product_id})" class="p-1 text-red-500 hover:bg-red-50 rounded">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <p class="font-semibold text-gray-900">${formatCurrency(item.price * item.qty)}</p>
-                        <button onclick="removeFromCart(${item.product_id})" class="p-1 text-red-500 hover:bg-red-50 rounded">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                        </button>
-                    </div>
+                    ${modRows}
+                    <button onclick="addModifier(${index})" class="w-full px-3 py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-100 transition">
+                        + Tambah Modifier
+                    </button>
                 </div>
             `;
         });
@@ -305,7 +459,23 @@ function renderCart() {
     document.getElementById("cartTax").textContent = formatCurrency(tax);
     document.getElementById("cartTotal").textContent = formatCurrency(total);
 
-    // Update order number display if resuming draft
+    const tableDisplay = document.getElementById("selectedTableDisplay");
+    if (tableDisplay) {
+        const tableName =
+            tablesList.find((table) => table.id == selectedTableId)?.name ||
+            "-";
+        tableDisplay.textContent = tableName;
+    }
+
+    const splitBillDisplay = document.getElementById("splitBillGroupDisplay");
+    const splitBillSummaryRow = document.getElementById("splitBillSummaryRow");
+    if (splitBillDisplay) {
+        splitBillDisplay.textContent = splitBillGroup || "-";
+    }
+    if (splitBillSummaryRow) {
+        splitBillSummaryRow.style.display = splitBillGroup ? "flex" : "none";
+    }
+
     const orderNumEl = document.getElementById("orderNumber");
     if (orderNumEl && currentDraftId) {
         orderNumEl.textContent = "# Draft";
@@ -313,6 +483,11 @@ function renderCart() {
     } else if (orderNumEl) {
         orderNumEl.textContent = "# 1";
         orderNumEl.classList.remove("text-orange-600");
+    }
+
+    // Automatically recalculate split bill display anytime UI changes
+    if (typeof calculateSplitBill === "function") {
+        calculateSplitBill();
     }
 }
 
@@ -447,7 +622,25 @@ function showPaymentModal() {
     paidInput.value = total;
     document.getElementById("changeDisplay").textContent = formatCurrency(0);
 
+    const splitCountInput = document.getElementById("splitCountInput");
+    if (splitCountInput) {
+        // Retrieve the number from splitBillGroup if it was previously saved
+        if (
+            splitBillGroup.startsWith("Split") &&
+            splitBillGroup.includes("Orang")
+        ) {
+            const count = parseInt(splitBillGroup.match(/\d+/)[0]) || 1;
+            splitCountInput.value = count;
+        } else {
+            splitCountInput.value = 1;
+        }
+    }
+
+    goToStep(1);
     document.getElementById("paymentModal").classList.remove("hidden");
+
+    // Calculate split bill right away in case it's carried over
+    calculateSplitBill();
 
     // Add change listener if not already added
     if (!paidInput.dataset.listenerAdded) {
@@ -469,6 +662,48 @@ function showPaymentModal() {
         });
         paidInput.dataset.listenerAdded = "true";
     }
+}
+
+let splitBillCount = 1;
+
+function updateSplitCount(change) {
+    const input = document.getElementById("splitCountInput");
+    if (!input) return;
+    let newValue = parseInt(input.value) + change;
+    if (newValue < 1) newValue = 1;
+    input.value = newValue;
+    calculateSplitBill();
+}
+
+function calculateSplitBill() {
+    const input = document.getElementById("splitCountInput");
+    if (!input) return;
+    let count = parseInt(input.value) || 1;
+    if (count < 1) {
+        count = 1;
+        input.value = 1;
+    }
+    splitBillCount = count;
+
+    // Save to splitBillGroup so it persists and sends to backend
+    if (count > 1) {
+        setSplitBillGroup(`Split ${count} Orang`);
+    } else {
+        setSplitBillGroup("");
+    }
+
+    const { total } = calculateTotals();
+    const resultBox = document.getElementById("splitBillResult");
+    const display = document.getElementById("splitPerPersonDisplay");
+
+    if (count > 1) {
+        const perPerson = Math.ceil(total / count);
+        if (display) display.textContent = formatCurrency(perPerson);
+        if (resultBox) resultBox.classList.remove("hidden");
+    } else {
+        if (resultBox) resultBox.classList.add("hidden");
+    }
+    renderSplitBillControls();
 }
 
 let lastTransaction = null;
@@ -545,6 +780,17 @@ function printReceipt() {
                 <p class="text-lg font-bold">TOTAL</p>
                 <p class="text-lg font-bold">${formatCurrency(lastTransaction.total)}</p>
             </div>
+            
+            ${
+                lastTransaction.splitBillGroup
+                    ? `
+            <div class="flex items-center justify-between mt-2">
+                <p class="text-md font-semibold text-gray-600">${lastTransaction.splitBillGroup}</p>
+                <p class="text-md font-bold">${formatCurrency(Math.ceil(lastTransaction.total / (parseInt(lastTransaction.splitBillGroup.match(/\\d+/)?.[0]) || 1)))}/org</p>
+            </div>
+            `
+                    : ""
+            }
 
             <div class="border border-[#B9B9B9] w-[100%] my-4 rounded-2xl"></div>
 
@@ -583,6 +829,7 @@ function hidePaymentModal() {
 
 function selectOrderType(type) {
     selectedOrderType = type;
+    saveCart();
     document.querySelectorAll(".order-type-btn").forEach((btn) => {
         if (btn.dataset.type === type) {
             btn.classList.add(
@@ -604,6 +851,7 @@ function selectOrderType(type) {
 
 function selectPaymentMethod(method) {
     selectedPaymentMethod = method;
+    saveCart();
     document.querySelectorAll(".payment-method-btn").forEach((btn) => {
         if (btn.dataset.method === method) {
             btn.classList.add(
@@ -640,6 +888,8 @@ function processCheckout() {
         paid_amount: paidValue,
         change_amount: changeValue,
         draft_id: currentDraftId, // Include draft_id if resuming
+        table_id: selectedTableId,
+        split_bill_group: splitBillGroup,
     };
 
     if (!navigator.onLine) {
@@ -684,6 +934,7 @@ function processCheckout() {
                     change: changeValue,
                     paymentMethod: selectedPaymentMethod,
                     orderType: selectedOrderType,
+                    splitBillGroup: splitBillGroup,
                 };
 
                 hidePaymentModal();
@@ -711,6 +962,16 @@ function processCheckout() {
         });
 }
 
+function goToStep(stepNumber) {
+    if (stepNumber === 1) {
+        document.getElementById("payment-modal-1").classList.remove("hidden");
+        document.getElementById("payment-modal-2").classList.add("hidden");
+    } else if (stepNumber === 2) {
+        document.getElementById("payment-modal-1").classList.add("hidden");
+        document.getElementById("payment-modal-2").classList.remove("hidden");
+    }
+}
+
 function hideSuccessModal() {
     document.getElementById("successModal").classList.add("hidden");
     cart = [];
@@ -736,6 +997,8 @@ function holdOrder() {
         payment_method: selectedPaymentMethod,
         total: total,
         draft_id: currentDraftId, // Include draft_id if updating existing draft
+        table_id: selectedTableId,
+        split_bill_group: splitBillGroup,
     };
     console.log("Hold Payload = = ", payload);
 
@@ -879,10 +1142,17 @@ function resumeDraft(draftId) {
                 currentDraftId = data.draft_id;
                 selectedOrderType = data.order_type || "dine_in";
                 selectedPaymentMethod = data.payment_method || "cash";
+                selectedTableId = data.table_id || null;
+                splitBillGroup = data.split_bill_group || "";
                 saveDraft();
                 renderCart();
                 selectOrderType(selectedOrderType);
                 selectPaymentMethod(selectedPaymentMethod);
+                const tableSelect = document.getElementById("tableSelect");
+                if (tableSelect) tableSelect.value = selectedTableId || "";
+                const splitBillInput =
+                    document.getElementById("splitBillInput");
+                if (splitBillInput) splitBillInput.value = splitBillGroup || "";
                 updateFloatingBadge();
                 hideDraftsModal();
                 showToast(`Draft ${data.order_number} di-resume ke keranjang`);
@@ -929,10 +1199,18 @@ document.addEventListener("DOMContentLoaded", function () {
         routeHold = posConfig.dataset.routeHold || "";
         routeDrafts = posConfig.dataset.routeDrafts || "";
         csrfToken = posConfig.dataset.csrfToken || "";
+        try {
+            modifiersList = JSON.parse(posConfig.dataset.modifiers || "[]");
+            tablesList = JSON.parse(posConfig.dataset.tables || "[]");
+        } catch (error) {
+            modifiersList = [];
+            tablesList = [];
+        }
     }
 
     // Load cart with priority (draft from orders > cart > empty)
     cart = loadCartWithPriority();
+    console.log("LOAD FIRST CART = = ", cart);
 
     // If draft was loaded, update UI state from draft
     if (
@@ -954,6 +1232,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     initSearch();
     renderCart();
+    selectOrderType(selectedOrderType);
+    selectPaymentMethod(selectedPaymentMethod);
+    const tableSelect = document.getElementById("tableSelect");
+    if (tableSelect) tableSelect.value = selectedTableId || "";
+    const splitBillInput = document.getElementById("splitBillInput");
+    if (splitBillInput) splitBillInput.value = splitBillGroup || "";
     updateFloatingBadge();
     updateOfflineBanner();
     loadDraftCount();

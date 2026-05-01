@@ -21,7 +21,7 @@ class OrderController extends Controller
      */
     public function getOrders(Request $request)
     {
-        $query = Sale::with(['items.product', 'cashier']);
+        $query = Sale::with(['items.product', 'cashier', 'table']);
 
         // Filter by status
         if ($request->filled('status') && $request->status !== 'all') {
@@ -37,16 +37,18 @@ class OrderController extends Controller
 
         $data = $orders->through(function ($sale) {
             return [
-            'id' => $sale->id,
-            'order_number' => $sale->order_number,
-            'order_type' => $sale->order_type,
-            'total' => $sale->total,
-            'payment_method' => $sale->payment_method,
-            'status' => $sale->status,
-            'items_count' => $sale->items->count(),
-            'cashier_name' => $sale->cashier->name ?? 'Unknown',
-            'created_at' => $sale->created_at->format('d M Y'),
-            'created_time' => $sale->created_at->format('H:i'),
+                'id' => $sale->id,
+                'order_number' => $sale->order_number,
+                'order_type' => $sale->order_type,
+                'total' => $sale->total,
+                'payment_method' => $sale->payment_method,
+                'status' => $sale->status,
+                'table_name' => $sale->table->name ?? null,
+                'split_bill_group' => $sale->split_bill_group,
+                'items_count' => $sale->items->count(),
+                'cashier_name' => $sale->cashier->name ?? 'Unknown',
+                'created_at' => $sale->created_at->format('d M Y'),
+                'created_time' => $sale->created_at->format('H:i'),
             ];
         });
 
@@ -85,11 +87,13 @@ class OrderController extends Controller
             'total' => $sale->total,
             'payment_method' => $sale->payment_method,
             'status' => $sale->status,
+            'table_name' => $sale->table->name ?? null,
+            'split_bill_group' => $sale->split_bill_group,
             'cashier_name' => $sale->cashier->name ?? 'Unknown',
             'created_at' => $sale->created_at->format('d M Y'),
             'created_time' => $sale->created_at->format('H:i'),
             'items' => $sale->items->map(function ($item) {
-            return [
+                return [
                     'id' => $item->id,
                     'name' => $item->product->name ?? 'Deleted Product',
                     'product_id' => $item->product->id ?? '-',
@@ -98,8 +102,14 @@ class OrderController extends Controller
                     'price' => $item->price,
                     'subtotal' => $item->price * $item->qty,
                     'note' => $item->note,
+                    'modifiers' => $item->modifiers->map(function ($modifier) {
+                        return [
+                            'name' => $modifier->modifier->name ?? 'Modifier',
+                            'value' => $modifier->value,
+                        ];
+                    }),
                 ];
-        }),
+            }),
         ]);
     }
 }

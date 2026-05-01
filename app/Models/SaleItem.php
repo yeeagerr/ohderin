@@ -19,4 +19,9 @@ class SaleItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function modifiers()
+    {
+        return $this->hasMany(SaleItemModifier::class);
+    }
 }

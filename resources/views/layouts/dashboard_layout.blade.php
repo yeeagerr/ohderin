@@ -69,6 +69,13 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">PRODUK</span>
                 </a>
+                <a href="{{ route('modifiers.index') }}" class="nav-link {{ request()->is('dashboard/modifiers*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <path d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                    </svg>
+                    <span class="nav-title text-sm tracking-[2px]">MODIFIER</span>
+                </a>
                 <a href="{{ route('raw-materials.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">

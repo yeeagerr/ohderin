@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Kasir;
 
 use App\Http\Controllers\Controller;
+use App\Models\Modifier;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\SaleItemModifier;
+use App\Models\Table;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -53,6 +56,35 @@ class PosController extends Controller
         }
     }
 
+    private function saveSaleItems($sale, $items, $deductStock = false)
+    {
+        foreach ($items as $item) {
+            $saleItem = SaleItem::create([
+                'sale_id' => $sale->id,
+                'product_id' => $item['product_id'],
+                'qty' => $item['qty'],
+                'price' => $item['price'],
+                'note' => $item['note'] ?? null,
+            ]);
+
+            if (!empty($item['modifiers']) && is_array($item['modifiers'])) {
+                foreach ($item['modifiers'] as $modifierData) {
+                    if (isset($modifierData['modifier_id'])) {
+                        SaleItemModifier::create([
+                            'sale_item_id' => $saleItem->id,
+                            'modifier_id' => $modifierData['modifier_id'],
+                            'value' => $modifierData['value'] ?? null,
+                        ]);
+                    }
+                }
+            }
+
+            if ($deductStock) {
+                $this->deductStockForProduct($item['product_id'], $item['qty']);
+            }
+        }
+    }
+
     /**
      * Display POS page with initial products and categories
      */
@@ -82,7 +114,10 @@ class PosController extends Controller
             ->orderBy('categories.name')
             ->get();
 
-        return view('kasir.pos', compact('products', 'categories'));
+        $tables = Table::orderBy('name')->get();
+        $modifiers = Modifier::where('is_active', true)->orderBy('name')->get();
+
+        return view('kasir.pos', compact('products', 'categories', 'tables', 'modifiers'));
     }
 
     /**
@@ -121,7 +156,7 @@ class PosController extends Controller
 
     public function getDrafts()
     {
-        $draftsPaginated = Sale::with('items.product')
+        $draftsPaginated = Sale::with(['items.product', 'table'])
             ->where('status', 'draft')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -131,6 +166,9 @@ class PosController extends Controller
                 'id' => $draft->id,
                 'order_number' => $draft->order_number,
                 'total' => $draft->total,
+                'table_id' => $draft->table_id,
+                'table_name' => $draft->table->name ?? null,
+                'split_bill_group' => $draft->split_bill_group,
                 'created_at' => $draft->created_at->format('d M Y H:i'),
                 'items_count' => $draft->items->count(),
                 'items_summary' => $draft->items->pluck('product.name')->join(', '),
@@ -156,7 +194,7 @@ class PosController extends Controller
             ], 404);
         }
 
-        $items = $draft->items()->with('product')->get()->map(function ($item) {
+        $items = $draft->items()->with(['product.category', 'modifiers.modifier'])->get()->map(function ($item) {
             return [
                 'product_id' => $item->product_id,
                 'name' => $item->product->name,
@@ -164,6 +202,12 @@ class PosController extends Controller
                 'qty' => $item->qty,
                 'category' => $item->product->category,
                 'note' => $item->note,
+                'modifiers' => $item->modifiers->map(function ($modifier) {
+                    return [
+                        'modifier_id' => $modifier->modifier_id,
+                        'value' => $modifier->value,
+                    ];
+                })->toArray(),
             ];
         });
 
@@ -174,6 +218,8 @@ class PosController extends Controller
             'items' => $items,
             'order_type' => $draft->order_type,
             'payment_method' => $draft->payment_method,
+            'table_id' => $draft->table_id,
+            'split_bill_group' => $draft->split_bill_group,
         ]);
     }
 
@@ -219,6 +265,23 @@ class PosController extends Controller
 
     public function holdOrder(Request $request)
     {
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.qty' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.note' => 'nullable|string|max:500',
+            'items.*.modifiers' => 'nullable|array',
+            'items.*.modifiers.*.modifier_id' => 'nullable|exists:modifiers,id',
+            'items.*.modifiers.*.value' => 'nullable|string|max:255',
+            'order_type' => 'required|in:dine_in,take_away',
+            'payment_method' => 'nullable|in:cash,qris,debit,credit,drafted',
+            'total' => 'required|numeric|min:0',
+            'draft_id' => 'nullable|exists:sales,id',
+            'table_id' => 'nullable|exists:tables,id',
+            'split_bill_group' => 'nullable|string|max:100',
+        ]);
+
         try {
             DB::beginTransaction();
 
@@ -233,7 +296,9 @@ class PosController extends Controller
                 $sale->update([
                     'order_type' => $request->order_type,
                     'total' => $request->total,
-                    'payment_method' => $request->payment_method || 'drafted',
+                    'payment_method' => $request->payment_method ?? 'drafted',
+                    'table_id' => $request->table_id,
+                    'split_bill_group' => $request->split_bill_group,
                 ]);
 
                 // Delete old sale items
@@ -248,22 +313,16 @@ class PosController extends Controller
                     'order_number' => $orderNumber,
                     'order_type' => $request->order_type,
                     'total' => $request->total,
-                    'payment_method' => $request->payment_method || 'drafted',
+                    'payment_method' => $request->payment_method ?? 'drafted',
+                    'table_id' => $request->table_id,
+                    'split_bill_group' => $request->split_bill_group,
                     'user_id' => Auth::user()->id ?? 1,
                     'status' => 'draft',
                 ]);
             }
 
             // Create sale items
-            foreach ($request->items as $item) {
-                SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $item['product_id'],
-                    'qty' => $item['qty'],
-                    'price' => $item['price'],
-                    'note' => $item['note'] ?? null,
-                ]);
-            }
+            $this->saveSaleItems($sale, $request->items, false);
 
             DB::commit();
 
@@ -292,42 +351,44 @@ class PosController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.qty' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
+            'items.*.note' => 'nullable|string|max:500',
+            'items.*.modifiers' => 'nullable|array',
+            'items.*.modifiers.*.modifier_id' => 'nullable|exists:modifiers,id',
+            'items.*.modifiers.*.value' => 'nullable|string|max:255',
             'order_type' => 'required|in:dine_in,take_away',
             'payment_method' => 'required|in:cash,qris,debit,credit',
             'total' => 'required|numeric|min:0',
             'paid_amount' => 'required|numeric|min:0',
             'change_amount' => 'required|numeric',
-            'draft_id' => 'nullable|exists:sales,id', // Optional draft_id for updating existing draft
+            'draft_id' => 'nullable|exists:sales,id',
+            'table_id' => 'nullable|exists:tables,id',
+            'split_bill_group' => 'nullable|string|max:100',
         ]);
 
         try {
             DB::beginTransaction();
 
-            // Check if updating existing draft
             $draftId = $request->input('draft_id');
 
             if ($draftId) {
                 // Update existing draft to completed
                 $sale = Sale::findOrFail($draftId);
 
-                // Update sale details and mark as completed
                 $sale->update([
                     'order_type' => $request->order_type,
                     'total' => $request->total,
                     'paid_amount' => $request->paid_amount,
                     'change_amount' => $request->change_amount,
                     'payment_method' => $request->payment_method,
-                    'status' => 'completed', // Change status from draft to completed
+                    'table_id' => $request->table_id,
+                    'split_bill_group' => $request->split_bill_group,
+                    'status' => 'completed',
                 ]);
 
-                // Delete old sale items
                 SaleItem::where('sale_id', $sale->id)->delete();
             } else {
-                // Create new sale
-                // Generate order number
                 $orderNumber = $this->generateOrderNumber();
 
-                // Create sale
                 $sale = Sale::create([
                     'order_number' => $orderNumber,
                     'order_type' => $request->order_type,
@@ -335,24 +396,14 @@ class PosController extends Controller
                     'paid_amount' => $request->paid_amount,
                     'change_amount' => $request->change_amount,
                     'payment_method' => $request->payment_method,
-                    'user_id' => Auth::user()->id ?? 1, // Default to user 1 if not authenticated
-                    'status' => 'completed', // New transactions are completed by default
+                    'table_id' => $request->table_id,
+                    'split_bill_group' => $request->split_bill_group,
+                    'user_id' => Auth::user()->id ?? 1,
+                    'status' => 'completed',
                 ]);
             }
 
-            // Create sale items
-            foreach ($request->items as $item) {
-                SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $item['product_id'],
-                    'qty' => $item['qty'],
-                    'price' => $item['price'],
-                    'note' => $item['note'] ?? null,
-                ]);
-
-                // Deduct stock since the sale is completed
-                $this->deductStockForProduct($item['product_id'], $item['qty']);
-            }
+            $this->saveSaleItems($sale, $request->items, true);
 
             DB::commit();
 
@@ -371,3 +422,4 @@ class PosController extends Controller
         }
     }
 }
+

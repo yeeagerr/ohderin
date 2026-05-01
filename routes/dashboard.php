@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ModifierController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\RawMaterialController;
@@ -23,7 +24,7 @@ Route::get('/dashboard/products/{product}/data', [ProductController::class, 'get
 Route::post('/dashboard/products', [ProductController::class, 'store'])->name('products.store');
 Route::put('/dashboard/products/{product}', [ProductController::class, 'update'])->name('products.update');
 Route::delete('/dashboard/products/{product}', [ProductController::class, 'destroy'])->name('products.delete');
-
+Route::resource('/dashboard/modifiers', ModifierController::class)->except(['show', 'create', 'edit']);
 
 // Route::resource('/dashboard/products', ProductController::class)->except(['show', 'create', 'edit']);
 Route::patch('/dashboard/products/{product}/toggle', [ProductController::class, 'toggleStatus'])->name('products.toggle');
