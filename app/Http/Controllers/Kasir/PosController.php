@@ -58,6 +58,11 @@ class PosController extends Controller
 
     private function saveSaleItems($sale, $items, $deductStock = false)
     {
+        $productModifierIds = Product::with('modifiers:id')->whereIn('id', collect($items)->pluck('product_id'))->get()
+            ->mapWithKeys(function ($product) {
+                return [$product->id => $product->modifiers->pluck('id')->all()];
+            });
+
         foreach ($items as $item) {
             $saleItem = SaleItem::create([
                 'sale_id' => $sale->id,
@@ -68,11 +73,13 @@ class PosController extends Controller
             ]);
 
             if (!empty($item['modifiers']) && is_array($item['modifiers'])) {
+                $allowedModifierIds = $productModifierIds->get($item['product_id'], []);
                 foreach ($item['modifiers'] as $modifierData) {
-                    if (isset($modifierData['modifier_id'])) {
+                    $modifierId = $modifierData['modifier_id'] ?? null;
+                    if ($modifierId && in_array((int) $modifierId, $allowedModifierIds)) {
                         SaleItemModifier::create([
                             'sale_item_id' => $saleItem->id,
-                            'modifier_id' => $modifierData['modifier_id'],
+                            'modifier_id' => $modifierId,
                             'value' => $modifierData['value'] ?? null,
                         ]);
                     }
@@ -90,18 +97,16 @@ class PosController extends Controller
      */
     public function index()
     {
-        // Only show products with complete recipe (with quantity set) or packages
-        $products = Product::where('is_active', true)
-            ->where(function ($q) {
+        $products = Product::with(['category', 'modifiers' => function ($query) {
+                $query->where('is_active', true)->orderBy('name');
+            }])->where('is_active', true)->where(function ($q) {
                 $q->where('is_package', true)
                     ->orWhereHas('recipe', function ($subQ) {
                         $subQ->whereNotNull('quantity');
                     });
-            })
-            ->orderBy('name')
-            ->paginate(20);
+            })->orderBy('name')->paginate(20);
 
-        $categories = Product::where('products.is_active', true)
+        $categories = Product::where('is_active', true)
             ->where(function ($q) {
                 $q->where('is_package', true)
                     ->orWhereHas('recipe', function ($subQ) {
@@ -116,8 +121,22 @@ class PosController extends Controller
 
         $tables = Table::orderBy('name')->get();
         $modifiers = Modifier::where('is_active', true)->orderBy('name')->get();
+        $productModifiers = Product::with(['modifiers' => function ($query) {
+                $query->where('is_active', true)->orderBy('name');
+            }])
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->where('is_package', true)
+                    ->orWhereHas('recipe', function ($subQ) {
+                        $subQ->whereNotNull('quantity');
+                    });
+            })
+            ->get()
+            ->mapWithKeys(function ($product) {
+                return [$product->id => $product->modifiers->values()];
+            });
 
-        return view('kasir.pos', compact('products', 'categories', 'tables', 'modifiers'));
+        return view('kasir.pos', compact('products', 'categories', 'tables', 'modifiers', 'productModifiers'));
     }
 
     /**
@@ -125,7 +144,10 @@ class PosController extends Controller
      */
     public function getProducts(Request $request)
     {
-        $query = Product::with('category')->where('is_active', true)
+        $query = Product::with(['category', 'modifiers' => function ($query) {
+                $query->where('is_active', true)->orderBy('name');
+            }])
+            ->where('is_active', true)
             ->where(function ($q) {
                 $q->where('is_package', true)
                     ->orWhereHas('recipe', function ($subQ) {
@@ -194,7 +216,9 @@ class PosController extends Controller
             ], 404);
         }
 
-        $items = $draft->items()->with(['product.category', 'modifiers.modifier'])->get()->map(function ($item) {
+        $items = $draft->items()->with(['product.category', 'product.modifiers' => function ($query) {
+            $query->where('is_active', true)->orderBy('name');
+        }, 'modifiers.modifier'])->get()->map(function ($item) {
             return [
                 'product_id' => $item->product_id,
                 'name' => $item->product->name,
@@ -202,6 +226,7 @@ class PosController extends Controller
                 'qty' => $item->qty,
                 'category' => $item->product->category,
                 'note' => $item->note,
+                'allowed_modifiers' => $item->product->modifiers->values(),
                 'modifiers' => $item->modifiers->map(function ($modifier) {
                     return [
                         'modifier_id' => $modifier->modifier_id,
@@ -422,4 +447,3 @@ class PosController extends Controller
         }
     }
 }
-

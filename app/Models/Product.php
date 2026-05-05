@@ -35,6 +35,11 @@ class Product extends Model
         return $this->hasMany(SaleItem::class);
     }
 
+    public function modifiers()
+    {
+        return $this->belongsToMany(Modifier::class, 'product_modifier')->withTimestamps();
+    }
+
     // Helper method untuk cek apakah produk bisa dijadikan komponen paket
     public function canBePackageComponent()
     {

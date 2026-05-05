@@ -41,15 +41,16 @@ class ModifierController extends Controller
             'type' => 'required|in:add,remove,level',
             'category' => 'nullable|string|max:255',
             'price_adjustment' => 'required|numeric',
-            'is_active' => 'nullable|boolean',
         ]);
+        
+        $is_active = $request->is_active ? true : false;
 
         $modifier->update([
             'name' => $request->name,
             'type' => $request->type,
             'category' => $request->category,
             'price_adjustment' => $request->price_adjustment,
-            'is_active' => $request->has('is_active'),
+            'is_active' => $is_active,
         ]);
 
         return redirect()->route('modifiers.index')->with('success', 'Modifier berhasil diperbarui!');

@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductPackage;
 use App\Models\Recipe;
 use App\Models\Category;
+use App\Models\Modifier;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,9 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with('category')->with('packageItems')->with('recipe');
+        $query = Product::with(['category', 'packageItems', 'recipe', 'modifiers' => function ($query) {
+            $query->where('is_active', true)->orderBy('name');
+        }]);
 
         // Search by name
         if ($request->filled('search')) {
@@ -42,6 +45,7 @@ class ProductController extends Controller
 
         $products = $query->latest()->paginate(15);
         $categories = Category::all();
+        $modifiers = Modifier::where('is_active', true)->orderBy('name')->get();
 
         // Load raw materials for recipe section
         $rawMaterials = \App\Models\RawMaterial::select('id', 'name', 'unit', 'cost')
@@ -56,7 +60,7 @@ class ProductController extends Controller
             ->limit(500)
             ->get();
 
-        return view('dashboard.product', compact('products', 'categories', 'rawMaterials', 'allProducts'));
+        return view('dashboard.product', compact('products', 'categories', 'rawMaterials', 'allProducts', 'modifiers'));
     }
 
     public function searchProducts(Request $request)
@@ -88,6 +92,8 @@ class ProductController extends Controller
             'recipe_items' => 'nullable|array',
             'recipe_items.*.raw_material_id' => 'nullable|exists:raw_materials,id',
             'recipe_items.*.qty' => 'nullable|numeric|min:0.0001',
+            'modifier_ids' => 'nullable|array',
+            'modifier_ids.*' => 'exists:modifiers,id',
         ]);
 
         DB::transaction(function () use ($request) {
@@ -106,6 +112,8 @@ class ProductController extends Controller
                 'is_package' => $request->has('is_package'),
                 'is_active' => $request->has('is_active') ? true : true,
             ]);
+
+            $product->modifiers()->sync($request->input('modifier_ids', []));
 
             // Handle package products
             if ($request->has('is_package') && $request->filled('package_products')) {
@@ -172,6 +180,8 @@ class ProductController extends Controller
             'recipe_items' => 'nullable|array',
             'recipe_items.*.raw_material_id' => 'nullable|exists:raw_materials,id',
             'recipe_items.*.qty' => 'nullable|numeric|min:0.0001',
+            'modifier_ids' => 'nullable|array',
+            'modifier_ids.*' => 'exists:modifiers,id',
         ]);
 
         DB::transaction(function () use ($request, $product) {
@@ -193,6 +203,7 @@ class ProductController extends Controller
             }
 
             $product->update($updateData);
+            $product->modifiers()->sync($request->input('modifier_ids', []));
 
             // Handle package products
             if ($request->has('is_package')) {
@@ -268,6 +279,8 @@ class ProductController extends Controller
                 ->orWhere('product_id', $product->id)
                 ->delete();
 
+            $product->modifiers()->detach();
+
             // Delete recipe
             Recipe::where('product_id', $product->id)->delete();
 
@@ -288,7 +301,7 @@ class ProductController extends Controller
      */
     public function getProduct(Product $product)
     {
-        $product->load(['category', 'recipe.items.rawMaterial', 'packageItems.product']);
+        $product->load(['category', 'recipe.items.rawMaterial', 'packageItems.product', 'modifiers']);
         return response()->json($product);
     }
 }

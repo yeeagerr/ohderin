@@ -6,8 +6,9 @@ let selectedOrderType = "dine_in";
 let selectedPaymentMethod = "cash";
 let selectedTableId = null;
 let splitBillGroup = "";
-let currentDraftId = null; //BUAT NANDAIN KALAU INITUH DARI DRAFT!!
+let currentDraftId = null;
 let modifiersList = [];
+let productModifierMap = {};
 let tablesList = [];
 const TAX_RATE = 0.1;
 
@@ -36,20 +37,6 @@ function saveCart() {
     );
 }
 
-function saveDraft() {
-    localStorage.setItem(
-        RESUME_KEY,
-        JSON.stringify({
-            items: cart,
-            currentDraftId,
-            selectedOrderType,
-            selectedPaymentMethod,
-            table_id: selectedTableId,
-            split_bill_group: splitBillGroup,
-        }),
-    );
-}
-
 function setTableId(value) {
     selectedTableId = value ? parseInt(value, 10) : null;
     saveCart();
@@ -64,12 +51,59 @@ function getModifierAdjustment(item) {
     if (!Array.isArray(item.modifiers)) return 0;
     return item.modifiers.reduce((sum, modifier) => {
         if (!modifier.modifier_id) return sum;
-        const selected = modifiersList.find(
-            (m) => m.id === modifier.modifier_id,
-        );
+        const selected = getModifierById(modifier.modifier_id);
         if (!selected) return sum;
         return sum + (parseFloat(selected.price_adjustment) || 0);
     }, 0);
+}
+
+function getModifierById(modifierId) {
+    const id = parseInt(modifierId, 10);
+    return modifiersList.find((modifier) => parseInt(modifier.id, 10) === id);
+}
+
+function rememberProductModifiers(product) {
+    const modifiers = Array.isArray(product.modifiers) ? product.modifiers : [];
+    productModifierMap[product.id] = modifiers;
+    return modifiers;
+}
+
+function getAllowedModifiers(item) {
+    const baseModifiers = Array.isArray(item.allowed_modifiers)
+        ? item.allowed_modifiers
+        : productModifierMap[item.product_id] || [];
+    const selectedIds = Array.isArray(item.modifiers)
+        ? item.modifiers
+              .map((modifier) => modifier.modifier_id)
+              .filter(Boolean)
+        : [];
+    const selectedExtras = selectedIds
+        .map((modifierId) => getModifierById(modifierId))
+        .filter(
+            (modifier) =>
+                modifier &&
+                !baseModifiers.some(
+                    (baseModifier) =>
+                        parseInt(baseModifier.id, 10) ===
+                        parseInt(modifier.id, 10),
+                ),
+        );
+
+    return [...baseModifiers, ...selectedExtras];
+}
+
+function hydrateCartItems(items) {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => {
+        const productModifiers = productModifierMap[item.product_id] || [];
+        return {
+            ...item,
+            modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+            allowed_modifiers: Array.isArray(item.allowed_modifiers)
+                ? item.allowed_modifiers
+                : productModifiers,
+        };
+    });
 }
 
 function toggleSplitBill() {
@@ -95,6 +129,7 @@ function renderSplitBillControls() {
 
 function addModifier(itemIndex) {
     if (!cart[itemIndex]) return;
+    if (!getAllowedModifiers(cart[itemIndex]).length) return;
     if (!Array.isArray(cart[itemIndex].modifiers)) {
         cart[itemIndex].modifiers = [];
     }
@@ -112,9 +147,13 @@ function removeModifier(itemIndex, modifierIndex) {
 
 function updateModifierSelection(itemIndex, modifierIndex, modifierId) {
     if (!cart[itemIndex] || !Array.isArray(cart[itemIndex].modifiers)) return;
-    cart[itemIndex].modifiers[modifierIndex].modifier_id = modifierId
-        ? parseInt(modifierId, 10)
-        : null;
+    const id = modifierId ? parseInt(modifierId, 10) : null;
+    const allowed = getAllowedModifiers(cart[itemIndex]);
+    const isAllowed = allowed.some(
+        (modifier) => parseInt(modifier.id, 10) === id,
+    );
+    cart[itemIndex].modifiers[modifierIndex].modifier_id =
+        id && isAllowed ? id : null;
     saveCart();
     renderCart();
 }
@@ -130,11 +169,8 @@ function loadCartWithPriority() {
     const draft = localStorage.getItem(RESUME_KEY);
     const storedCart = localStorage.getItem(CART_KEY);
 
-    console.log(`DEBUG DATA DRAFT ${draft}, cart = ${storedCart}`);
-
     if (draft) {
         const draftData = JSON.parse(draft);
-        console.log("DRAFT DATA = = ", draftData);
 
         if (draftData.items && Array.isArray(draftData.items)) {
             currentDraftId = draftData.currentDraftId || null;
@@ -142,20 +178,20 @@ function loadCartWithPriority() {
             selectedPaymentMethod = draftData.selectedPaymentMethod || "cash";
             selectedTableId = draftData.table_id || null;
             splitBillGroup = draftData.split_bill_group || "";
-            return draftData.items;
+            return hydrateCartItems(draftData.items);
         }
 
         if (Array.isArray(draftData)) {
-            return draftData;
+            return hydrateCartItems(draftData);
         }
 
         if (draftData && draftData.items) {
-            return draftData.items;
+            return hydrateCartItems(draftData.items);
         }
     }
 
     if (storedCart) {
-        return JSON.parse(storedCart);
+        return hydrateCartItems(JSON.parse(storedCart));
     }
 
     return [];
@@ -280,11 +316,15 @@ function formatCurrency(amount) {
     return "Rp " + new Intl.NumberFormat("id-ID").format(amount);
 }
 
-function addToCart(productId, name, price, category) {
+function addToCart(productId, name, price, category, allowedModifiers = null) {
+    const productModifiers = Array.isArray(allowedModifiers)
+        ? allowedModifiers
+        : productModifierMap[productId] || [];
     const existingItem = cart.find((item) => item.product_id === productId);
 
     if (existingItem) {
         existingItem.qty++;
+        existingItem.allowed_modifiers = productModifiers;
     } else {
         cart.push({
             product_id: productId,
@@ -294,6 +334,7 @@ function addToCart(productId, name, price, category) {
             category,
             note: null,
             modifiers: [],
+            allowed_modifiers: productModifiers,
         });
     }
 
@@ -349,7 +390,6 @@ function renderCart() {
     const cartContainer = document.getElementById("cartItems");
     const { subtotal, tax, total, itemCount } = calculateTotals();
     const holdBtn = document.getElementById("holdBtn");
-    console.log("DEBUG CART = = = ", cart);
 
     if (cart.length === 0) {
         cartContainer.innerHTML = `
@@ -367,35 +407,35 @@ function renderCart() {
         let html = "";
         cart.forEach((item, index) => {
             const adjustment = getModifierAdjustment(item);
-            console.log("MODIFIER ITEM = = == ", item);
+            const allowedModifiers = getAllowedModifiers(item);
             const modRows =
                 Array.isArray(item.modifiers) && item.modifiers.length
                     ? item.modifiers
-                          .map((modifier, modIndex) => {
-                              const selectedModifier = modifiersList.find(
-                                  (m) => m.id === modifier.modifier_id,
-                              );
-                              const priceInfo = selectedModifier
-                                  ? (parseFloat(
-                                        selectedModifier.price_adjustment,
-                                    ) || 0) >= 0
-                                      ? ` +${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
-                                      : ` ${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
-                                  : "";
-                              return `
+                        .map((modifier, modIndex) => {
+                            const selectedModifier = getModifierById(
+                                modifier.modifier_id,
+                            );
+                            const priceInfo = selectedModifier
+                                ? (parseFloat(
+                                    selectedModifier.price_adjustment,
+                                ) || 0) >= 0
+                                    ? ` +${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
+                                    : ` ${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
+                                : "";
+                            return `
                           <div class="mt-3 p-3 bg-white border border-gray-200 rounded-xl space-y-2">
                               <div class="grid grid-cols-2 gap-2">
                                   <select onchange="updateModifierSelection(${index}, ${modIndex}, this.value)" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
                                       <option value="">Pilih modifier</option>
-                                      ${modifiersList
-                                          .map(
-                                              (mod) => `
-                                          <option value="${mod.id}" ${modifier.modifier_id === mod.id ? "selected" : ""}>
+                                      ${allowedModifiers
+                                    .map(
+                                        (mod) => `
+                                          <option value="${mod.id}" ${parseInt(modifier.modifier_id, 10) === parseInt(mod.id, 10) ? "selected" : ""}>
                                               ${mod.name}${(parseFloat(mod.price_adjustment) || 0) !== 0 ? ` ${parseFloat(mod.price_adjustment) > 0 ? "+" : ""}${formatCurrency(parseFloat(mod.price_adjustment) || 0)}` : ""}
                                           </option>
                                       `,
-                                          )
-                                          .join("")}
+                                    )
+                                    .join("")}
                                   </select>
                                   <button onclick="removeModifier(${index}, ${modIndex})" class="px-3 py-2 bg-red-100 text-red-600 rounded-xl text-sm">Hapus</button>
                               </div>
@@ -409,8 +449,8 @@ function renderCart() {
                               ${priceInfo ? `<p class="text-xs text-gray-500">Harga modifier:${priceInfo}</p>` : ""}
                           </div>
                       `;
-                          })
-                          .join("")
+                        })
+                        .join("")
                     : "";
 
             html += `
@@ -441,9 +481,11 @@ function renderCart() {
                         </div>
                     </div>
                     ${modRows}
-                    <button onclick="addModifier(${index})" class="w-full px-3 py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-100 transition">
-                        + Tambah Modifier
-                    </button>
+                    ${
+                        allowedModifiers.length
+                            ? `<button onclick="addModifier(${index})" class="w-full px-3 py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-600 hover:bg-gray-100 transition">+ Tambah Modifier</button>`
+                            : `<div class="w-full px-3 py-2 border border-dashed border-gray-200 rounded-xl text-sm text-gray-400 text-center">Tidak ada modifier untuk produk ini</div>`
+                    }
                 </div>
             `;
         });
@@ -549,8 +591,7 @@ function loadProducts(reset = false) {
             loading.classList.add("hidden");
 
             data.products.forEach((product) => {
-                console.log("DEBUG PRODUCT NAME ", routeProducts);
-
+                const productModifiers = rememberProductModifiers(product);
                 const div = document.createElement("div");
                 div.className =
                     "bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 p-4 cursor-pointer relative group";
@@ -560,6 +601,7 @@ function loadProducts(reset = false) {
                         product?.name,
                         parseFloat(product.price),
                         product.category,
+                        productModifiers,
                     );
                 div.innerHTML = `
                     <div class="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center mb-4">
@@ -568,6 +610,11 @@ function loadProducts(reset = false) {
                     <div class="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-full px-2.5 py-1 text-xs font-semibold text-gray-700 shadow">
                         ${product.category.name}
                     </div>
+                    ${
+                        productModifiers.length
+                            ? `<div class="absolute top-3 left-3 bg-orange-500 text-white rounded-full px-2.5 py-1 text-xs font-semibold shadow">${productModifiers.length} modifier</div>`
+                            : ""
+                    }
                     <h3 class="font-semibold text-gray-900 mb-1 truncate" title="${product?.name}">${product?.name?.substring(0, 20)}${product?.name?.length > 20 ? "..." : ""}</h3>
                     <p class="text-xl font-bold text-orange-500">${formatCurrency(parseFloat(product.price))}</p>
                     <button class="absolute bottom-4 right-4 p-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg">
@@ -597,8 +644,7 @@ function loadProducts(reset = false) {
                 loadMoreEl.classList.remove("hidden");
             }
         })
-        .catch((e) => {
-            console.error(e, " failed");
+        .catch(() => {
             loading.classList.add("hidden");
             if (!grid.children.length) {
                 grid.innerHTML = `<div class="col-span-full text-center text-gray-400 py-10">Tidak dapat memuat produk saat offline</div>`;
@@ -781,16 +827,15 @@ function printReceipt() {
                 <p class="text-lg font-bold">${formatCurrency(lastTransaction.total)}</p>
             </div>
             
-            ${
-                lastTransaction.splitBillGroup
-                    ? `
+            ${lastTransaction.splitBillGroup
+            ? `
             <div class="flex items-center justify-between mt-2">
                 <p class="text-md font-semibold text-gray-600">${lastTransaction.splitBillGroup}</p>
                 <p class="text-md font-bold">${formatCurrency(Math.ceil(lastTransaction.total / (parseInt(lastTransaction.splitBillGroup.match(/\\d+/)?.[0]) || 1)))}/org</p>
             </div>
             `
-                    : ""
-            }
+            : ""
+        }
 
             <div class="border border-[#B9B9B9] w-[100%] my-4 rounded-2xl"></div>
 
@@ -904,7 +949,6 @@ function processCheckout() {
         document.getElementById("successModal").classList.remove("hidden");
         return;
     }
-    console.log("PAYLOAD = = ", payload);
     fetch(routeCheckout, {
         method: "POST",
         headers: {
@@ -1000,7 +1044,6 @@ function holdOrder() {
         table_id: selectedTableId,
         split_bill_group: splitBillGroup,
     };
-    console.log("Hold Payload = = ", payload);
 
     fetch(routeHold, {
         method: "POST",
@@ -1013,43 +1056,22 @@ function holdOrder() {
         .then((response) => response.json())
         .then((data) => {
             holdBtn.disabled = false;
-            console.log("Hold response", data);
             if (data.success) {
                 showToast(`Order ${data.order_number} berhasil di-hold!`);
-                // Update currentDraftId if this was a new draft creation
                 if (!currentDraftId) {
                     currentDraftId = data.sale_id;
                 }
                 clearCart();
                 loadDraftCount();
             } else {
-                console.log("Hold error", data.message);
                 showToast(data.message || "Gagal hold order");
             }
         })
-        .catch((err) => {
-            console.log("Hold failed", err);
+        .catch(() => {
             holdBtn.disabled = false;
             showToast("Gagal hold order. Coba lagi.");
         });
 }
-
-// function loadDraftCount() {
-//     fetch(routeDrafts)
-//         .then(r => r.json())
-//         .then(data => {
-//             const badge = document.getElementById('draftBadge');
-//             if (badge) {
-//                 if (data.count > 0) {
-//                     badge.textContent = data.count;
-//                     badge.style.display = 'flex';
-//                 } else {
-//                     badge.style.display = 'none';
-//                 }
-//             }
-//         })
-//         .catch(() => { });
-// }
 
 function loadDraftCount() {
     fetch(routeDrafts)
@@ -1066,7 +1088,7 @@ function loadDraftCount() {
                 }
             }
         })
-        .catch(() => {});
+        .catch(() => { });
 }
 
 function showDraftsModal() {
@@ -1144,7 +1166,7 @@ function resumeDraft(draftId) {
                 selectedPaymentMethod = data.payment_method || "cash";
                 selectedTableId = data.table_id || null;
                 splitBillGroup = data.split_bill_group || "";
-                saveDraft();
+                saveCart();
                 renderCart();
                 selectOrderType(selectedOrderType);
                 selectPaymentMethod(selectedPaymentMethod);
@@ -1201,16 +1223,18 @@ document.addEventListener("DOMContentLoaded", function () {
         csrfToken = posConfig.dataset.csrfToken || "";
         try {
             modifiersList = JSON.parse(posConfig.dataset.modifiers || "[]");
+            productModifierMap = JSON.parse(
+                posConfig.dataset.productModifiers || "{}",
+            );
             tablesList = JSON.parse(posConfig.dataset.tables || "[]");
         } catch (error) {
             modifiersList = [];
+            productModifierMap = {};
             tablesList = [];
         }
     }
 
-    // Load cart with priority (draft from orders > cart > empty)
-    cart = loadCartWithPriority();
-    console.log("LOAD FIRST CART = = ", cart);
+    cart = hydrateCartItems(loadCartWithPriority());
 
     // If draft was loaded, update UI state from draft
     if (

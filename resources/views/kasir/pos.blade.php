@@ -7,18 +7,11 @@
     <div id="posConfig" class="hidden" data-route-products="{{ route('kasir.products') }}"
         data-route-checkout="{{ route('kasir.checkout') }}" data-route-hold="{{ route('kasir.hold') }}"
         data-route-drafts="{{ route('kasir.drafts') }}" data-csrf-token="{{ csrf_token() }}"
-        data-tables='{{ $tables->toJson() }}' data-modifiers='{{ $modifiers->toJson() }}'>
+        data-tables='@json($tables)' data-modifiers='@json($modifiers)' data-product-modifiers='@json($productModifiers)'>
     </div>
 
     <!-- Cart Section -->
     <div id="cartSidebar" class="cart-sidebar cart-open bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
-        <!-- Toggle Button (inside sidebar) -->
-        <!-- <button onclick="toggleCart()" class="cart-toggle-btn" title="Tutup keranjang">
-                    <svg id="cartToggleIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transition: transform 0.3s ease;">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                </button> -->
-
         <!-- Header -->
         <div class="p-4 border-b border-gray-200 flex items-center justify-between">
             <div class="flex items-center space-x-2">
@@ -186,7 +179,7 @@
         <div class="flex-1 overflow-y-auto p-5" id="productsContainer">
             <div id="productsGrid" class="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
                 @foreach($products as $product)
-                    <div onclick="addToCart({{ $product->id }}, '{{ addslashes($product->name) }}', {{ $product->price }}, '{{ $product->category }}')"
+                    <div onclick='addToCart({{ $product->id }}, @json($product->name), {{ $product->price }}, @json($product->category), @json($product->modifiers))'
                         class="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-all duration-200 p-4 cursor-pointer relative group">
                         <div
                             class="aspect-square bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center mb-4">
@@ -196,6 +189,11 @@
                             class="absolute top-3 right-3 bg-white/90 backdrop-blur rounded-full px-2.5 py-1 text-xs font-semibold text-gray-700 shadow">
                             {{ $product->category->name }}
                         </div>
+                        @if($product->modifiers->isNotEmpty())
+                            <div class="absolute top-3 left-3 bg-orange-500 text-white rounded-full px-2.5 py-1 text-xs font-semibold shadow">
+                                {{ $product->modifiers->count() }} modifier
+                            </div>
+                        @endif
                         <h3 class="font-semibold text-gray-900 mb-1 truncate" title="{{ $product->name }}">
                             {{ Str::limit($product->name, 20) }}
                         </h3>

@@ -157,6 +157,7 @@
                         <th class="text-right py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Harga</th>
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipe</th>
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Resep</th>
+                        <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Modifier</th>
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Aksi</th>
                     </tr>
@@ -232,6 +233,20 @@
                             @endif
                         </td>
                         <td class="py-4 px-6 text-center">
+                            @if($product->modifiers->isNotEmpty())
+                                <div class="flex flex-col items-center gap-1">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-semibold">
+                                        {{ $product->modifiers->count() }} modifier
+                                    </span>
+                                    <span class="text-xs text-gray-400 max-w-36 truncate" title="{{ $product->modifiers->pluck('name')->join(', ') }}">
+                                        {{ $product->modifiers->pluck('name')->take(2)->join(', ') }}{{ $product->modifiers->count() > 2 ? ', ...' : '' }}
+                                    </span>
+                                </div>
+                            @else
+                                <span class="text-xs text-gray-400">-</span>
+                            @endif
+                        </td>
+                        <td class="py-4 px-6 text-center">
                             <button onclick="toggleStatus({{ $product->id }})" 
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors cursor-pointer
                                     {{ $product->is_active ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200' }}">
@@ -268,7 +283,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="py-16 text-center">
+                        <td colspan="9" class="py-16 text-center">
                             <div class="flex flex-col items-center">
                                 <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                                     <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -482,6 +497,32 @@
                                 </div>
                             </label>
                         </div>
+                        <div class="border-t border-gray-200 pt-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700">Modifier Produk</label>
+                                    <p class="text-xs text-gray-400">Pilih modifier yang tersedia untuk produk ini</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50">
+                                @forelse($modifiers as $modifier)
+                                    <label class="flex items-start gap-3 rounded-lg bg-white border border-gray-200 p-3 cursor-pointer hover:border-orange-300 transition">
+                                        <input type="checkbox" name="modifier_ids[]" value="{{ $modifier->id }}" class="mt-1 h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-400">
+                                        <span class="min-w-0">
+                                            <span class="block text-sm font-semibold text-gray-700 truncate">{{ $modifier->name }}</span>
+                                            <span class="block text-xs text-gray-400">
+                                                {{ $modifier->category ?: 'Umum' }}
+                                                @if((float) $modifier->price_adjustment !== 0.0)
+                                                    - {{ (float) $modifier->price_adjustment > 0 ? '+' : '' }}Rp {{ number_format($modifier->price_adjustment, 0, ',', '.') }}
+                                                @endif
+                                            </span>
+                                        </span>
+                                    </label>
+                                @empty
+                                    <div class="col-span-full text-sm text-gray-400 text-center py-4">Belum ada modifier aktif</div>
+                                @endforelse
+                            </div>
+                        </div>
                         <!-- Recipe Section (Hidden for packages) -->
                         <div id="addRecipeSection" class="hidden border-t border-gray-200 pt-5">
                             <h4 class="text-sm font-bold text-gray-700 mb-4">📋 Resep Produk</h4>
@@ -613,6 +654,32 @@
                                     <p class="text-xs text-gray-400">Tampilkan di kasir</p>
                                 </div>
                             </label>
+                        </div>
+                        <div class="border-t border-gray-200 pt-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700">Modifier Produk</label>
+                                    <p class="text-xs text-gray-400">Pilih modifier yang tersedia untuk produk ini</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50">
+                                @forelse($modifiers as $modifier)
+                                    <label class="flex items-start gap-3 rounded-lg bg-white border border-gray-200 p-3 cursor-pointer hover:border-blue-300 transition">
+                                        <input type="checkbox" name="modifier_ids[]" value="{{ $modifier->id }}" class="editModifierCheckbox mt-1 h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400">
+                                        <span class="min-w-0">
+                                            <span class="block text-sm font-semibold text-gray-700 truncate">{{ $modifier->name }}</span>
+                                            <span class="block text-xs text-gray-400">
+                                                {{ $modifier->category ?: 'Umum' }}
+                                                @if((float) $modifier->price_adjustment !== 0.0)
+                                                    - {{ (float) $modifier->price_adjustment > 0 ? '+' : '' }}Rp {{ number_format($modifier->price_adjustment, 0, ',', '.') }}
+                                                @endif
+                                            </span>
+                                        </span>
+                                    </label>
+                                @empty
+                                    <div class="col-span-full text-sm text-gray-400 text-center py-4">Belum ada modifier aktif</div>
+                                @endforelse
+                            </div>
                         </div>
                         <!-- Recipe Section (Hidden for packages) -->
                         <div id="editRecipeSection" class="hidden border-t border-gray-200 pt-5">
@@ -872,6 +939,10 @@
                 document.getElementById('editPrice').value = fullProduct.price;
                 document.getElementById('editIsPackage').checked = fullProduct.is_package;
                 document.getElementById('editIsActive').checked = fullProduct.is_active;
+                const modifierIds = (fullProduct.modifiers || []).map(modifier => parseInt(modifier.id, 10));
+                document.querySelectorAll('.editModifierCheckbox').forEach(checkbox => {
+                    checkbox.checked = modifierIds.includes(parseInt(checkbox.value, 10));
+                });
                 
                 // Handle image display
                 if (fullProduct.image) {

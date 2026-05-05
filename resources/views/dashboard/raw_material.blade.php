@@ -152,7 +152,7 @@
                         <th class="text-center py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100">
+                <tbody id="rawMaterialsTableBody" class="divide-y divide-gray-100">
                     @forelse($rawMaterials as $index => $material)
                     <tr class="hover:bg-gray-50/50 transition-colors duration-150">
                         <td class="py-4 px-6">
@@ -297,6 +297,12 @@
     </div>
 </main>
 
+<datalist id="unitOptions">
+    @foreach($units as $unit)
+        <option value="{{ $unit }}">
+    @endforeach
+</datalist>
+
 <!-- Modal Tambah -->
 <div id="addModal" class="fixed inset-0 z-50 hidden">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal('addModal')"></div>
@@ -324,17 +330,9 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Satuan <span class="text-red-500">*</span></label>
-                            <select name="unit" required
-                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition">
-                                <option value="">Pilih Satuan</option>
-                                <option value="kg">Kilogram (kg)</option>
-                                <option value="gram">Gram (g)</option>
-                                <option value="liter">Liter (L)</option>
-                                <option value="ml">Mililiter (ml)</option>
-                                <option value="pcs">Pieces (pcs)</option>
-                                <option value="pack">Pack</option>
-                                <option value="box">Box</option>
-                            </select>
+                            <input type="text" name="unit" id="addUnitName" required list="unitOptions" maxlength="20"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
+                                   placeholder="Contoh: kg">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Stok Minimal <span class="text-red-500">*</span></label>
@@ -352,6 +350,29 @@
                                    placeholder="0">
                         </div>
                         <p class="text-xs text-gray-400 mt-1">Harga beli per satuan</p>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700">Daftar Satuan</label>
+                                <p class="text-xs text-gray-400">Ratio dihitung terhadap satuan utama</p>
+                            </div>
+                            <button type="button" onclick="addUnitRow('add')" class="px-3 py-2 text-sm text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-xl font-semibold transition">
+                                Tambah
+                            </button>
+                        </div>
+                        <div class="overflow-hidden border border-gray-200 rounded-xl">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500">Nama</th>
+                                        <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500">Ratio</th>
+                                        <th class="w-16 px-3 py-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="addUnitsContainer" class="divide-y divide-gray-100"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 <div class="flex gap-3 mt-6">
@@ -396,16 +417,8 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Satuan <span class="text-red-500">*</span></label>
-                            <select name="unit" id="editUnit" required
-                                    class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
-                                <option value="kg">Kilogram (kg)</option>
-                                <option value="gram">Gram (g)</option>
-                                <option value="liter">Liter (L)</option>
-                                <option value="ml">Mililiter (ml)</option>
-                                <option value="pcs">Pieces (pcs)</option>
-                                <option value="pack">Pack</option>
-                                <option value="box">Box</option>
-                            </select>
+                            <input type="text" name="unit" id="editUnit" required list="unitOptions" maxlength="20"
+                                   class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
                         </div>
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Stok Minimal <span class="text-red-500">*</span></label>
@@ -419,6 +432,29 @@
                             <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
                             <input type="number" name="cost" id="editCost" required min="0" step="100"
                                    class="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition">
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700">Daftar Satuan</label>
+                                <p class="text-xs text-gray-400">Ratio dihitung terhadap satuan utama</p>
+                            </div>
+                            <button type="button" onclick="addUnitRow('edit')" class="px-3 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl font-semibold transition">
+                                Tambah
+                            </button>
+                        </div>
+                        <div class="overflow-hidden border border-gray-200 rounded-xl">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500">Nama</th>
+                                        <th class="text-left px-3 py-2 text-xs font-semibold text-gray-500">Ratio</th>
+                                        <th class="w-16 px-3 py-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="editUnitsContainer" class="divide-y divide-gray-100"></tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -470,9 +506,78 @@
 
 @section('scripts')
 <script>
+    const unitCounters = { add: 1, edit: 1 };
+
+    function getUnitInput(type) {
+        return document.getElementById(type === 'add' ? 'addUnitName' : 'editUnit');
+    }
+
+    function getUnitsContainer(type) {
+        return document.getElementById(type === 'add' ? 'addUnitsContainer' : 'editUnitsContainer');
+    }
+
+    function createUnitRow(type, index, unit = {}, isBase = false) {
+        const color = type === 'add' ? 'orange' : 'blue';
+        const name = unit.name || '';
+        const ratio = unit.ratio || '';
+        return `
+            <tr ${isBase ? 'data-base-unit="true"' : ''}>
+                <td class="px-3 py-2">
+                    <input type="text" name="units[${index}][name]" value="${name}" ${isBase ? 'readonly' : ''}
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-${color}-400 ${isBase ? 'bg-gray-50 text-gray-500' : ''}"
+                           placeholder="Nama satuan">
+                </td>
+                <td class="px-3 py-2">
+                    <input type="number" name="units[${index}][ratio]" value="${ratio}" min="0.0001" step="0.0001" ${isBase ? 'readonly' : ''}
+                           class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-${color}-400 ${isBase ? 'bg-gray-50 text-gray-500' : ''}"
+                           placeholder="1">
+                </td>
+                <td class="px-3 py-2 text-right">
+                    ${isBase ? '<span class="text-xs text-gray-400">Utama</span>' : '<button type="button" onclick="this.closest(\'tr\').remove()" class="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm rounded-lg transition">Hapus</button>'}
+                </td>
+            </tr>
+        `;
+    }
+
+    function syncBaseUnitRow(type) {
+        const container = getUnitsContainer(type);
+        const unitInput = getUnitInput(type);
+        const baseName = unitInput.value.trim();
+        let baseRow = container.querySelector('[data-base-unit="true"]');
+
+        if (!baseRow) {
+            container.insertAdjacentHTML('afterbegin', createUnitRow(type, 0, { name: baseName, ratio: 1 }, true));
+            baseRow = container.querySelector('[data-base-unit="true"]');
+        }
+
+        baseRow.querySelector('input[name="units[0][name]"]').value = baseName;
+        baseRow.querySelector('input[name="units[0][ratio]"]').value = 1;
+    }
+
+    function addUnitRow(type, unit = {}) {
+        const container = getUnitsContainer(type);
+        const index = unitCounters[type]++;
+        container.insertAdjacentHTML('beforeend', createUnitRow(type, index, unit, false));
+    }
+
+    function populateUnits(type, mainUnit, units = []) {
+        const container = getUnitsContainer(type);
+        container.innerHTML = '';
+        unitCounters[type] = 1;
+        syncBaseUnitRow(type);
+
+        units
+            .filter(unit => unit.name && unit.name.toLowerCase() !== (mainUnit || '').toLowerCase())
+            .forEach(unit => addUnitRow(type, unit));
+    }
+
     function openModal(id) {
         document.getElementById(id).classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+
+        if (id === 'addModal') {
+            syncBaseUnitRow('add');
+        }
     }
 
     function closeModal(id) {
@@ -486,6 +591,7 @@
         document.getElementById('editUnit').value = material.unit;
         document.getElementById('editMinimalStock').value = material.minimal_stock;
         document.getElementById('editCost').value = material.cost;
+        populateUnits('edit', material.unit, material.units || []);
         openModal('editModal');
     }
 
@@ -498,10 +604,14 @@
     // Search
     document.getElementById('searchInput').addEventListener('input', function(e) {
         const search = e.target.value.toLowerCase();
-        document.querySelectorAll('tbody tr').forEach(row => {
+        document.querySelectorAll('#rawMaterialsTableBody tr').forEach(row => {
             row.style.display = row.textContent.toLowerCase().includes(search) ? '' : 'none';
         });
     });
+
+    document.getElementById('addUnitName').addEventListener('input', () => syncBaseUnitRow('add'));
+    document.getElementById('editUnit').addEventListener('input', () => syncBaseUnitRow('edit'));
+    syncBaseUnitRow('add');
 
     // Auto close alert
     setTimeout(() => {

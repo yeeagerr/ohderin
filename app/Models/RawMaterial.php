@@ -18,4 +18,9 @@ class RawMaterial extends Model
         return $this->hasMany(Purchase::class);
     }
 
+    public function units()
+    {
+        return $this->hasMany(RawMaterialUnit::class);
+    }
+
 }
