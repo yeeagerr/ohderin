@@ -98,6 +98,7 @@ function hydrateCartItems(items) {
             ...item,
             price: parseFloat(item.price) || 0,
             qty: parseInt(item.qty) || 1,
+            note: item.note || null,
             modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
             allowed_modifiers: Array.isArray(item.allowed_modifiers)
                 ? item.allowed_modifiers
@@ -316,17 +317,34 @@ function formatCurrency(amount) {
     return "Rp " + new Intl.NumberFormat("id-ID").format(amount);
 }
 
+function escapeAttribute(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+function updateItemNote(itemIndex, value) {
+    if (!cart[itemIndex]) return;
+    const note = value.trim();
+    cart[itemIndex].note = note ? note : null;
+    saveCart();
+}
+
 function addToCart(productId, name, price, category, allowedModifiers = null) {
     const productModifiers = Array.isArray(allowedModifiers)
         ? allowedModifiers
         : productModifierMap[productId] || [];
     const existingItem = cart.find((item) => item.product_id === productId);
 
-    if (existingItem) {
+    if (existingItem && existingItem?.modifiers.length == 0) {
         existingItem.qty++;
         existingItem.allowed_modifiers = productModifiers;
     } else {
+        let sequence = cart.length + 1;
         cart.push({
+            id: sequence,
             product_id: productId,
             name,
             price,
@@ -343,12 +361,12 @@ function addToCart(productId, name, price, category, allowedModifiers = null) {
     updateFloatingBadge();
 }
 
-function updateQuantity(productId, change) {
-    const item = cart.find((item) => item.product_id === productId);
+function updateQuantity(id, change) {
+    const item = cart.find((item) => item.id === id);
     if (item) {
         item.qty += change;
         if (item.qty <= 0) {
-            removeFromCart(productId);
+            removeFromCart(id);
         } else {
             saveCart();
             renderCart();
@@ -357,8 +375,8 @@ function updateQuantity(productId, change) {
     }
 }
 
-function removeFromCart(productId) {
-    cart = cart.filter((item) => item.product_id !== productId);
+function removeFromCart(id) {
+    cart = cart.filter((item) => item.id !== id);
     saveCart();
     renderCart();
     updateFloatingBadge();
@@ -487,7 +505,7 @@ function renderCart() {
                                   type="text"
                                   class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm"
                                   placeholder="Catatan modifier"
-                                  value="${modifier.value || ""}"
+                                  value="${escapeAttribute(modifier.value)}"
                                   onchange="updateModifierValue(${index}, ${modIndex}, this.value)"
                               />
                               ${priceInfo ? `<p class="text-xs text-gray-500">Harga modifier:${priceInfo}</p>` : ""}
@@ -508,22 +526,28 @@ function renderCart() {
                                 <h4 class="font-medium text-gray-900 truncate" title="${item.name}">${item?.name?.substring(0, 15) || item.product_name}${item?.name?.length || item.product_name > 15 ? "..." : ""}</h4>
                                 <div class="flex items-center space-x-2 mt-1">
                                     <div class="flex items-center border border-gray-300 rounded-lg">
-                                        <button onclick="updateQuantity(${item.product_id}, -1)" class="px-2 py-1 hover:bg-gray-100 text-gray-600">−</button>
+                                        <button onclick="updateQuantity(${item.id}, -1)" class="px-2 py-1 hover:bg-gray-100 text-gray-600">−</button>
                                         <span class="px-3 py-1 border-x border-gray-300 text-sm font-medium">${item.qty}</span>
-                                        <button onclick="updateQuantity(${item.product_id}, 1)" class="px-2 py-1 hover:bg-gray-100 text-gray-600">+</button>
+                                        <button onclick="updateQuantity(${item.id}, 1)" class="px-2 py-1 hover:bg-gray-100 text-gray-600">+</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
                             <p class="font-semibold text-gray-900">${formatCurrency((item.price + adjustment) * item.qty)}</p>
-                            <button onclick="removeFromCart(${item.product_id})" class="p-1 text-red-500 hover:bg-red-50 rounded">
+                            <button onclick="removeFromCart(${item.id})" class="p-1 text-red-500 hover:bg-red-50 rounded">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                 </svg>
                             </button>
                         </div>
                     </div>
+                    <textarea
+                        class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm resize-none"
+                        rows="2"
+                        placeholder="Catatan item (opsional)"
+                        onchange="updateItemNote(${index}, this.value)"
+                    >${escapeAttribute(item.note)}</textarea>
                     ${modRows}
                     ${
                         allowedModifiers.length
