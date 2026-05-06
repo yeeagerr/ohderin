@@ -419,7 +419,7 @@ class PosController extends Controller
                     'payment_method' => $request->payment_method,
                     'table_id' => $request->table_id,
                     'split_bill_group' => $request->split_bill_group,
-                    'status' => 'completed',
+                    'status' => "completed",
                 ]);
 
                 SaleItem::where('sale_id', $sale->id)->delete();
@@ -436,7 +436,7 @@ class PosController extends Controller
                     'table_id' => $request->table_id,
                     'split_bill_group' => $request->split_bill_group,
                     'user_id' => Auth::user()->id ?? 1,
-                    'status' => 'completed',
+                    'status' => "completed",
                 ]);
             }
 

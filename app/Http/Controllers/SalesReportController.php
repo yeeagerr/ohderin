@@ -159,9 +159,9 @@ class SalesReportController extends Controller
                 COUNT(*) as total_count,
                 SUM(total) as total_amount,
                 AVG(total) as avg_amount,
-                SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed_count,
-                SUM(CASE WHEN status = "draft" THEN 1 ELSE 0 END) as draft_count
-            ')
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed_count,
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as draft_count
+            ', ['completed', 'draft'])
             ->when(
                 $request->payment_method !== 'all' && $request->filled('payment_method'),
                 fn($q) => $q->where('payment_method', $request->payment_method)
@@ -224,9 +224,9 @@ class SalesReportController extends Controller
                 COUNT(*) as total_transactions,
                 SUM(total) as total_revenue,
                 COUNT(DISTINCT user_id) as cashiers_count,
-                SUM(CASE WHEN order_type = "dine_in" THEN 1 ELSE 0 END) as dine_in_count,
-                SUM(CASE WHEN order_type = "take_away" THEN 1 ELSE 0 END) as takeaway_count
-            ')
+                SUM(CASE WHEN order_type = ? THEN 1 ELSE 0 END) as dine_in_count,
+                SUM(CASE WHEN order_type = ? THEN 1 ELSE 0 END) as takeaway_count
+            ', ['dine_in', 'take_away'])
             ->first();
 
         return view('dashboard.reports.daily-summary', compact(
