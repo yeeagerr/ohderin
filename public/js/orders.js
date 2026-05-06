@@ -456,6 +456,12 @@ function renderOrderDetail(order) {
                     </svg>
                     Resume di POS
                 </button>
+                <button onclick="deleteDraftOrder()" class="w-full px-3 lg:px-4 py-2 lg:py-2.5 border border-red-200 text-red-600 rounded-xl text-xs lg:text-sm font-medium hover:bg-red-50 transition flex items-center justify-center">
+                    <svg class="w-3.5 h-3.5 lg:w-4 lg:h-4 mr-1.5 lg:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Hapus Draft
+                </button>
             `
                     : `
                 <div class="grid grid-cols-2 gap-2">
@@ -589,7 +595,7 @@ function resumeOrder() {
         return;
     }
 
-    // Format items untuk cart (extract hanya field yang dibutuhkan)
+    // Format items untuk cart (include modifiers)
     const cartItems = currentOrderDetail.items.map((item) => ({
         product_id: item.product_id,
         name: item.name,
@@ -597,6 +603,15 @@ function resumeOrder() {
         qty: item.qty,
         category: item.category,
         note: item.note || null,
+        modifiers: Array.isArray(item.modifiers)
+            ? item.modifiers.map((m) => ({
+                  modifier_id: m.modifier_id,
+                  value: m.value || "",
+              }))
+            : [],
+        allowed_modifiers: Array.isArray(item.allowed_modifiers)
+            ? item.allowed_modifiers
+            : [],
     }));
 
     // Simpan draft data ke localStorage
@@ -612,6 +627,42 @@ function resumeOrder() {
     // Close detail panel dan redirect ke POS
     closeOrderDetail();
     window.location.href = `/kasir/pos`;
+}
+
+function deleteDraftOrder() {
+    if (!currentOrderDetail || currentOrderDetail.status !== "draft") {
+        alert("Hanya draft orders yang bisa dihapus");
+        return;
+    }
+
+    if (
+        !confirm(
+            `Hapus draft order #${currentOrderDetail.order_number}? Data akan hilang dan tidak bisa dikembalikan.`,
+        )
+    ) {
+        return;
+    }
+
+    fetch(`/kasir/pos/drafts/${currentOrderDetail.id}`, {
+        method: "DELETE",
+        headers: {
+            "X-CSRF-TOKEN": ordersCSRFToken,
+            "Content-Type": "application/json",
+        },
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (data.success) {
+                alert("Draft berhasil dihapus");
+                closeOrderDetail();
+                loadOrders(true); // Reload orders list
+            } else {
+                alert(data.message || "Gagal menghapus draft");
+            }
+        })
+        .catch(() => {
+            alert("Gagal menghapus draft");
+        });
 }
 
 // INIT

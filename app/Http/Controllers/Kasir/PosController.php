@@ -97,14 +97,17 @@ class PosController extends Controller
      */
     public function index()
     {
-        $products = Product::with(['category', 'modifiers' => function ($query) {
+        $products = Product::with([
+            'category',
+            'modifiers' => function ($query) {
                 $query->where('is_active', true)->orderBy('name');
-            }])->where('is_active', true)->where(function ($q) {
-                $q->where('is_package', true)
-                    ->orWhereHas('recipe', function ($subQ) {
-                        $subQ->whereNotNull('quantity');
-                    });
-            })->orderBy('name')->paginate(20);
+            }
+        ])->where('is_active', true)->where(function ($q) {
+            $q->where('is_package', true)
+                ->orWhereHas('recipe', function ($subQ) {
+                    $subQ->whereNotNull('quantity');
+                });
+        })->orderBy('name')->paginate(20);
 
         $categories = Product::where('is_active', true)
             ->where(function ($q) {
@@ -121,9 +124,11 @@ class PosController extends Controller
 
         $tables = Table::orderBy('name')->get();
         $modifiers = Modifier::where('is_active', true)->orderBy('name')->get();
-        $productModifiers = Product::with(['modifiers' => function ($query) {
+        $productModifiers = Product::with([
+            'modifiers' => function ($query) {
                 $query->where('is_active', true)->orderBy('name');
-            }])
+            }
+        ])
             ->where('is_active', true)
             ->where(function ($q) {
                 $q->where('is_package', true)
@@ -144,9 +149,12 @@ class PosController extends Controller
      */
     public function getProducts(Request $request)
     {
-        $query = Product::with(['category', 'modifiers' => function ($query) {
+        $query = Product::with([
+            'category',
+            'modifiers' => function ($query) {
                 $query->where('is_active', true)->orderBy('name');
-            }])
+            }
+        ])
             ->where('is_active', true)
             ->where(function ($q) {
                 $q->where('is_package', true)
@@ -216,14 +224,18 @@ class PosController extends Controller
             ], 404);
         }
 
-        $items = $draft->items()->with(['product.category', 'product.modifiers' => function ($query) {
-            $query->where('is_active', true)->orderBy('name');
-        }, 'modifiers.modifier'])->get()->map(function ($item) {
+        $items = $draft->items()->with([
+            'product.category',
+            'product.modifiers' => function ($query) {
+                $query->where('is_active', true)->orderBy('name');
+            },
+            'modifiers.modifier'
+        ])->get()->map(function ($item) {
             return [
                 'product_id' => $item->product_id,
                 'name' => $item->product->name,
-                'price' => $item->price,
-                'qty' => $item->qty,
+                'price' => (float) $item->price,
+                'qty' => (int) $item->qty,
                 'category' => $item->product->category,
                 'note' => $item->note,
                 'allowed_modifiers' => $item->product->modifiers->values(),

@@ -78,7 +78,7 @@ class OrderController extends Controller
      */
     public function getOrderDetail($id)
     {
-        $sale = Sale::with(['items.product', 'cashier'])->findOrFail($id);
+        $sale = Sale::with(['items.product.modifiers', 'items.modifiers.modifier', 'cashier'])->findOrFail($id);
 
         return response()->json([
             'id' => $sale->id,
@@ -102,8 +102,10 @@ class OrderController extends Controller
                     'price' => $item->price,
                     'subtotal' => $item->price * $item->qty,
                     'note' => $item->note,
+                    'allowed_modifiers' => $item->product->modifiers->where('is_active', true)->values(),
                     'modifiers' => $item->modifiers->map(function ($modifier) {
                         return [
+                            'modifier_id' => $modifier->modifier_id,
                             'name' => $modifier->modifier->name ?? 'Modifier',
                             'value' => $modifier->value,
                         ];

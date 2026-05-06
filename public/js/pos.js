@@ -73,9 +73,7 @@ function getAllowedModifiers(item) {
         ? item.allowed_modifiers
         : productModifierMap[item.product_id] || [];
     const selectedIds = Array.isArray(item.modifiers)
-        ? item.modifiers
-              .map((modifier) => modifier.modifier_id)
-              .filter(Boolean)
+        ? item.modifiers.map((modifier) => modifier.modifier_id).filter(Boolean)
         : [];
     const selectedExtras = selectedIds
         .map((modifierId) => getModifierById(modifierId))
@@ -98,6 +96,8 @@ function hydrateCartItems(items) {
         const productModifiers = productModifierMap[item.product_id] || [];
         return {
             ...item,
+            price: parseFloat(item.price) || 0,
+            qty: parseInt(item.qty) || 1,
             modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
             allowed_modifiers: Array.isArray(item.allowed_modifiers)
                 ? item.allowed_modifiers
@@ -369,9 +369,53 @@ function clearCart() {
     currentDraftId = null;
     selectedTableId = null;
     splitBillGroup = "";
+    localStorage.removeItem("pos_resume_cart");
+    localStorage.removeItem("pos_cart");
     saveCart();
     renderCart();
     updateFloatingBadge();
+}
+
+function deleteCurrentDraft() {
+    if (!currentDraftId) return;
+
+    if (
+        !confirm(
+            "Hapus draft ini? Data akan hilang dan tidak bisa dikembalikan.",
+        )
+    )
+        return;
+
+    const deleteBtn = document.getElementById("deleteDraftBtn");
+    if (deleteBtn) deleteBtn.disabled = true;
+
+    fetch(`${routeDrafts}/${currentDraftId}`, {
+        method: "DELETE",
+        headers: { "X-CSRF-TOKEN": csrfToken },
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (deleteBtn) deleteBtn.disabled = false;
+            if (data.success) {
+                showToast("Draft berhasil dihapus");
+                cart = [];
+                currentDraftId = null;
+                selectedTableId = null;
+                splitBillGroup = "";
+                localStorage.removeItem("pos_resume_cart");
+                localStorage.removeItem("pos_cart");
+                saveCart();
+                renderCart();
+                updateFloatingBadge();
+                loadDraftCount();
+            } else {
+                showToast(data.message || "Gagal menghapus draft");
+            }
+        })
+        .catch(() => {
+            if (deleteBtn) deleteBtn.disabled = false;
+            showToast("Gagal menghapus draft");
+        });
 }
 
 function calculateTotals() {
@@ -411,31 +455,31 @@ function renderCart() {
             const modRows =
                 Array.isArray(item.modifiers) && item.modifiers.length
                     ? item.modifiers
-                        .map((modifier, modIndex) => {
-                            const selectedModifier = getModifierById(
-                                modifier.modifier_id,
-                            );
-                            const priceInfo = selectedModifier
-                                ? (parseFloat(
-                                    selectedModifier.price_adjustment,
-                                ) || 0) >= 0
-                                    ? ` +${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
-                                    : ` ${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
-                                : "";
-                            return `
+                          .map((modifier, modIndex) => {
+                              const selectedModifier = getModifierById(
+                                  modifier.modifier_id,
+                              );
+                              const priceInfo = selectedModifier
+                                  ? (parseFloat(
+                                        selectedModifier.price_adjustment,
+                                    ) || 0) >= 0
+                                      ? ` +${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
+                                      : ` ${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
+                                  : "";
+                              return `
                           <div class="mt-3 p-3 bg-white border border-gray-200 rounded-xl space-y-2">
                               <div class="grid grid-cols-2 gap-2">
                                   <select onchange="updateModifierSelection(${index}, ${modIndex}, this.value)" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
                                       <option value="">Pilih modifier</option>
                                       ${allowedModifiers
-                                    .map(
-                                        (mod) => `
+                                          .map(
+                                              (mod) => `
                                           <option value="${mod.id}" ${parseInt(modifier.modifier_id, 10) === parseInt(mod.id, 10) ? "selected" : ""}>
                                               ${mod.name}${(parseFloat(mod.price_adjustment) || 0) !== 0 ? ` ${parseFloat(mod.price_adjustment) > 0 ? "+" : ""}${formatCurrency(parseFloat(mod.price_adjustment) || 0)}` : ""}
                                           </option>
                                       `,
-                                    )
-                                    .join("")}
+                                          )
+                                          .join("")}
                                   </select>
                                   <button onclick="removeModifier(${index}, ${modIndex})" class="px-3 py-2 bg-red-100 text-red-600 rounded-xl text-sm">Hapus</button>
                               </div>
@@ -449,8 +493,8 @@ function renderCart() {
                               ${priceInfo ? `<p class="text-xs text-gray-500">Harga modifier:${priceInfo}</p>` : ""}
                           </div>
                       `;
-                        })
-                        .join("")
+                          })
+                          .join("")
                     : "";
 
             html += `
@@ -519,12 +563,15 @@ function renderCart() {
     }
 
     const orderNumEl = document.getElementById("orderNumber");
+    const deleteDraftBtn = document.getElementById("deleteDraftBtn");
     if (orderNumEl && currentDraftId) {
         orderNumEl.textContent = "# Draft";
         orderNumEl.classList.add("text-orange-600");
+        if (deleteDraftBtn) deleteDraftBtn.classList.remove("hidden");
     } else if (orderNumEl) {
         orderNumEl.textContent = "# 1";
         orderNumEl.classList.remove("text-orange-600");
+        if (deleteDraftBtn) deleteDraftBtn.classList.add("hidden");
     }
 
     // Automatically recalculate split bill display anytime UI changes
@@ -827,15 +874,16 @@ function printReceipt() {
                 <p class="text-lg font-bold">${formatCurrency(lastTransaction.total)}</p>
             </div>
             
-            ${lastTransaction.splitBillGroup
-            ? `
+            ${
+                lastTransaction.splitBillGroup
+                    ? `
             <div class="flex items-center justify-between mt-2">
                 <p class="text-md font-semibold text-gray-600">${lastTransaction.splitBillGroup}</p>
                 <p class="text-md font-bold">${formatCurrency(Math.ceil(lastTransaction.total / (parseInt(lastTransaction.splitBillGroup.match(/\\d+/)?.[0]) || 1)))}/org</p>
             </div>
             `
-            : ""
-        }
+                    : ""
+            }
 
             <div class="border border-[#B9B9B9] w-[100%] my-4 rounded-2xl"></div>
 
@@ -1088,7 +1136,7 @@ function loadDraftCount() {
                 }
             }
         })
-        .catch(() => { });
+        .catch(() => {});
 }
 
 function showDraftsModal() {
@@ -1160,7 +1208,15 @@ function resumeDraft(draftId) {
         .then((data) => {
             if (data.success) {
                 // Clear current cart and load draft items
-                cart = data.items;
+                // Ensure all prices are numbers
+                const items = Array.isArray(data.items)
+                    ? data.items.map((item) => ({
+                          ...item,
+                          price: parseFloat(item.price) || 0,
+                          qty: parseInt(item.qty) || 1,
+                      }))
+                    : [];
+                cart = hydrateCartItems(items);
                 currentDraftId = data.draft_id;
                 selectedOrderType = data.order_type || "dine_in";
                 selectedPaymentMethod = data.payment_method || "cash";
