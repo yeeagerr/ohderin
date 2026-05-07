@@ -350,6 +350,13 @@
                                         @endforeach
                                     </select>
                                 </div>
+                                <div class="w-28">
+                                    <select name="items[0][raw_material_unit_id]"
+                                            class="unit-select w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition"
+                                            onchange="updateUnitFromUom(this)">
+                                        <option value="">UOM</option>
+                                    </select>
+                                </div>
                                 <div class="w-32">
                                     <div class="relative">
                                         <input type="number" name="items[0][qty]" required min="0.0001" step="0.0001"
@@ -542,6 +549,13 @@
                     ${rawMaterialsData.map(m => `<option value="${m.id}" data-unit="${m.unit}">${m.name}</option>`).join('')}
                 </select>
             </div>
+            <div class="w-28">
+                <select name="items[${index}][raw_material_unit_id]"
+                        class="unit-select w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-${prefix === 'add' ? 'orange' : 'blue'}-400 transition"
+                        onchange="updateUnitFromUom(this)">
+                    <option value="">UOM</option>
+                </select>
+            </div>
             <div class="w-32">
                 <div class="relative">
                     <input type="number" name="items[${index}][qty]" required min="0.0001" step="0.0001"
@@ -582,11 +596,38 @@
         });
     }
 
-    function updateUnit(select) {
-        const unit = select.options[select.selectedIndex].dataset.unit || '';
+    function getMaterial(materialId) {
+        return rawMaterialsData.find(material => material.id == materialId);
+    }
+
+    function getMaterialUnits(material) {
+        return (material?.units?.length ? material.units : [{ id: '', name: material?.unit || '', ratio: 1 }])
+            .slice()
+            .sort((a, b) => (parseFloat(a.ratio) || 1) - (parseFloat(b.ratio) || 1));
+    }
+
+    function updateUnit(select, selectedUnitId = null) {
+        const material = getMaterial(select.value);
+        const row = select.closest('.ingredient-row');
+        const unitSelect = row.querySelector('.unit-select');
+        const units = getMaterialUnits(material);
+
+        if (unitSelect) {
+            unitSelect.innerHTML = units.map(unit => `
+                <option value="${unit.id || ''}" data-name="${unit.name}" data-ratio="${unit.ratio || 1}" ${selectedUnitId && selectedUnitId == unit.id ? 'selected' : ''}>
+                    ${unit.name}
+                </option>
+            `).join('');
+        }
+
+        updateUnitFromUom(unitSelect);
+    }
+
+    function updateUnitFromUom(select) {
         const row = select.closest('.ingredient-row');
         const unitLabel = row.querySelector('.unit-label');
-        if (unitLabel) unitLabel.textContent = unit;
+        const selectedOption = select.options[select.selectedIndex];
+        if (unitLabel) unitLabel.textContent = selectedOption?.dataset.name || '';
     }
 
     async function openEditModal(recipeId) {
@@ -614,6 +655,12 @@
                             ${rawMaterialsData.map(m => `<option value="${m.id}" data-unit="${m.unit}" ${m.id == item.raw_material_id ? 'selected' : ''}>${m.name}</option>`).join('')}
                         </select>
                     </div>
+                    <div class="w-28">
+                        <select name="items[${index}][raw_material_unit_id]"
+                                class="unit-select w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                                onchange="updateUnitFromUom(this)">
+                        </select>
+                    </div>
                     <div class="w-32">
                         <div class="relative">
                             <input type="number" name="items[${index}][qty]" required min="0.0001" step="0.0001"
@@ -630,6 +677,7 @@
                     </button>
                 `;
                 container.appendChild(row);
+                updateUnit(row.querySelector('select[name*="[raw_material_id]"]'));
             });
             
             updateRemoveButtons(container);

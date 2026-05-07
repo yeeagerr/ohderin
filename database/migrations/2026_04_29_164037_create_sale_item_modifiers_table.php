@@ -13,7 +13,7 @@ return new class extends Migration {
         Schema::create('sale_item_modifiers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('sale_item_id')->constrained('sale_items')->cascadeOnDelete();
-            $table->string('value')->nullable();
+            $table->integer('quantity')->default(1);
             $table->timestamps();
         });
     }

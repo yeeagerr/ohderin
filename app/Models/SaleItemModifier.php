@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SaleItemModifier extends Model
 {
-    protected $fillable = ['sale_item_id', 'modifier_id', 'value'];
+    protected $fillable = ['sale_item_id', 'modifier_id', 'quantity'];
 
     public function saleItem()
     {

@@ -204,7 +204,7 @@
                         </td>
                         <td class="py-4 px-6">
                             <div class="flex items-center justify-center gap-2">
-                                <button onclick="openEditModal({{ json_encode($purchase->load('rawMaterial')) }})" 
+                                <button onclick="openEditModal({{ json_encode($purchase->load('rawMaterial.units')) }})" 
                                         class="w-9 h-9 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors"
                                         title="Edit">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -328,13 +328,21 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Bahan Baku <span class="text-red-500">*</span></label>
                         <select name="raw_material_id" id="addRawMaterial" required
                                 class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
-                                onchange="updateUnitLabel(this, 'addUnit')">
+                                onchange="updateMaterialUnits('add')">
                             <option value="">Pilih Bahan Baku</option>
                             @foreach($rawMaterials as $material)
                                 <option value="{{ $material->id }}" data-unit="{{ $material->unit }}" data-cost="{{ $material->cost }}">
                                     {{ $material->name }} ({{ $material->unit }})
                                 </option>
                             @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">UOM <span class="text-red-500">*</span></label>
+                        <select name="raw_material_unit_id" id="addRawMaterialUnit"
+                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
+                                onchange="updateSelectedUnit('add')">
+                            <option value="">Pilih bahan dulu</option>
                         </select>
                     </div>
                     <div>
@@ -414,12 +422,19 @@
                         <label class="block text-sm font-semibold text-gray-700 mb-2">Bahan Baku <span class="text-red-500">*</span></label>
                         <select name="raw_material_id" id="editRawMaterial" required
                                 class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
-                                onchange="updateUnitLabel(this, 'editUnit')">
+                                onchange="updateMaterialUnits('edit')">
                             @foreach($rawMaterials as $material)
                                 <option value="{{ $material->id }}" data-unit="{{ $material->unit }}" data-cost="{{ $material->cost }}">
                                     {{ $material->name }} ({{ $material->unit }})
                                 </option>
                             @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">UOM <span class="text-red-500">*</span></label>
+                        <select name="raw_material_unit_id" id="editRawMaterialUnit"
+                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                                onchange="updateSelectedUnit('edit')">
                         </select>
                     </div>
                     <div>
@@ -505,6 +520,8 @@
 
 @section('scripts')
 <script>
+    const rawMaterialsData = @json($rawMaterials);
+
     function openModal(id) {
         document.getElementById(id).classList.remove('hidden');
         document.body.style.overflow = 'hidden';
@@ -515,16 +532,46 @@
         document.body.style.overflow = 'auto';
     }
 
-    function updateUnitLabel(select, labelId) {
-        console.log("SELECT OPTION = = ", select.options, select.selectedIndex)
-        const selectedOption = select.options[select.selectedIndex];
-        const unit = selectedOption.dataset.unit || 'unit';
-        const cost = selectedOption.dataset.cost || 0;
-        document.getElementById(labelId).textContent = unit;
-        
-        // Auto-fill price with cost from raw material
-        const prefix = labelId === 'addUnit' ? 'add' : 'edit';
-        document.getElementById(prefix + 'Price').value = cost;
+    function getMaterial(materialId) {
+        return rawMaterialsData.find(material => material.id == materialId);
+    }
+
+    function getSelectedUnit(prefix) {
+        const unitSelect = document.getElementById(prefix + 'RawMaterialUnit');
+        const selectedOption = unitSelect.options[unitSelect.selectedIndex];
+        return {
+            name: selectedOption?.dataset.name || selectedOption?.textContent || 'unit',
+            ratio: parseFloat(selectedOption?.dataset.ratio) || 1,
+        };
+    }
+
+    function updateMaterialUnits(prefix, resetPrice = true) {
+        const materialSelect = document.getElementById(prefix + 'RawMaterial');
+        const material = getMaterial(materialSelect.value);
+        const unitSelect = document.getElementById(prefix + 'RawMaterialUnit');
+        const units = (material?.units?.length ? material.units : [{ id: '', name: material?.unit || 'unit', ratio: 1 }])
+            .slice()
+            .sort((a, b) => (parseFloat(a.ratio) || 1) - (parseFloat(b.ratio) || 1));
+
+        unitSelect.innerHTML = units.map(unit => `
+            <option value="${unit.id || ''}" data-name="${unit.name}" data-ratio="${unit.ratio || 1}">
+                ${unit.name} (${unit.ratio || 1} ${material?.unit || 'unit'})
+            </option>
+        `).join('');
+
+        updateSelectedUnit(prefix, resetPrice);
+    }
+
+    function updateSelectedUnit(prefix, resetPrice = true) {
+        const material = getMaterial(document.getElementById(prefix + 'RawMaterial').value);
+        const selectedUnit = getSelectedUnit(prefix);
+
+        document.getElementById(prefix + 'Unit').textContent = selectedUnit.name;
+
+        if (material && resetPrice) {
+            document.getElementById(prefix + 'Price').value = Math.round((parseFloat(material.cost) || 0) * selectedUnit.ratio);
+        }
+
         calculateTotal(prefix);
     }
 
@@ -541,11 +588,7 @@
         document.getElementById('editPurchaseDate').value = purchase.purchase_date;
         document.getElementById('editQty').value = purchase.qty;
         document.getElementById('editPrice').value = purchase.price;
-        
-        // Update unit label
-        const select = document.getElementById('editRawMaterial');
-        const selectedOption = select.options[select.selectedIndex];
-        document.getElementById('editUnit').textContent = selectedOption.dataset.unit || 'unit';
+        updateMaterialUnits('edit', false);
         
         calculateTotal('edit');
         openModal('editModal');

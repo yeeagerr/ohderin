@@ -68,6 +68,23 @@ function getPaymentLabel(method) {
     return labels[method] || method;
 }
 
+function getModifierLines(modifiers) {
+    if (!Array.isArray(modifiers) || !modifiers.length) return "";
+
+    return modifiers
+        .map((mod) => {
+            const quantity = parseInt(mod.quantity, 10) || 1;
+            const adjustment = parseFloat(mod.price_adjustment) || 0;
+            const amount = adjustment * quantity;
+            const priceText = adjustment
+                ? ` - ${ordersFormatCurrency(amount)}`
+                : "";
+
+            return `<p class="text-xs text-gray-600">- ${mod.name || "Modifier"} (qty: ${quantity})${priceText}</p>`;
+        })
+        .join("");
+}
+
 // LOAD ORDERS
 
 function loadOrders(reset = false) {
@@ -341,6 +358,7 @@ function renderOrderDetail(order) {
 
     let itemsHtml = "";
     order.items.forEach((item) => {
+        const modifierLines = getModifierLines(item.modifiers);
         itemsHtml += `
             <div class="flex items-center justify-between p-2.5 lg:p-3 bg-gray-50 rounded-xl">
                 <div class="flex items-center">
@@ -351,6 +369,7 @@ function renderOrderDetail(order) {
                         <p class="font-medium text-gray-900 text-xs lg:text-sm">${item.name}</p>
                         <p class="text-[10px] lg:text-xs text-gray-500">${item.category.name} · Qty: ${item.qty}</p>
                         ${item.note ? `<p class="text-[10px] text-gray-400 italic">${item.note}</p>` : ""}
+                        ${modifierLines ? `<div class="mt-1">${modifierLines}</div>` : ""}
                     </div>
                 </div>
                 <p class="font-semibold text-gray-900 text-xs lg:text-sm">${ordersFormatCurrency(item.subtotal)}</p>
@@ -497,17 +516,24 @@ function printOrder() {
 
     const receiptWindow = window.open("", "_blank", "width=400,height=600");
     const itemsHtml = currentOrderDetail.items
-        .map(
-            (item) => `
-        <div class="flex items-center justify-between">
-            <div class="">
+        .map((item) => {
+            const modifierLines = getModifierLines(item.modifiers);
+
+            return `
+        <div class="flex items-start justify-between gap-2">
+            <div class="flex-1">
                 <p class="text-sm font-semibold text-xl">${item.name}</p>
                 <p class="text-sm font-semibold">${item.qty}x ${ordersFormatCurrency(item.price)}</p>
+                ${modifierLines ? `
+                <div class="mt-2 space-y-1">
+                    ${modifierLines}
+                </div>
+                ` : ''}
             </div>
-            <p class="text-sm text-xl font-[500]">${ordersFormatCurrency(item.price * item.qty)}</p>
+            <p class="text-sm text-xl font-[500] whitespace-nowrap">${ordersFormatCurrency(item.subtotal)}</p>
         </div>
-    `,
-        )
+    `;
+        })
         .join("");
 
     const receiptHtml = `
@@ -606,7 +632,9 @@ function resumeOrder() {
         modifiers: Array.isArray(item.modifiers)
             ? item.modifiers.map((m) => ({
                   modifier_id: m.modifier_id,
-                  value: m.value || "",
+                  name: m.name || null,
+                  price_adjustment: parseFloat(m.price_adjustment) || 0,
+                  quantity: m.quantity || 1,
               }))
             : [],
         allowed_modifiers: Array.isArray(item.allowed_modifiers)

@@ -14,7 +14,7 @@ class RecipeController extends Controller
     public function index(Request $request)
     {
         // Get recipes with eager loading using pagination
-        $query = Recipe::with(['product.category', 'items.rawMaterial']);
+        $query = Recipe::with(['product.category', 'items.rawMaterial.units']);
 
         // Filter by product
         if ($request->filled('product')) {
@@ -42,7 +42,8 @@ class RecipeController extends Controller
             ->get();
 
         // Get raw materials - limit to avoid loading too much
-        $rawMaterials = RawMaterial::select('id', 'name', 'unit', 'cost')
+        $rawMaterials = RawMaterial::with('units')
+            ->select('id', 'name', 'unit', 'cost')
             ->orderBy('name')
             ->limit(5000)
             ->get();
@@ -75,6 +76,7 @@ class RecipeController extends Controller
             'product_id' => 'required|exists:products,id|unique:recipes,product_id',
             'items' => 'required|array|min:1',
             'items.*.raw_material_id' => 'required|exists:raw_materials,id',
+            'items.*.raw_material_unit_id' => 'nullable|exists:raw_material_units,id',
             'items.*.qty' => 'required|numeric|min:0.0001',
         ]);
 
@@ -84,10 +86,13 @@ class RecipeController extends Controller
             ]);
 
             foreach ($request->items as $item) {
+                $material = RawMaterial::findOrFail($item['raw_material_id']);
+                $qty = $material->quantityToBaseUnit($item['qty'], $item['raw_material_unit_id'] ?? null);
+
                 RecipeItem::create([
                     'recipe_id' => $recipe->id,
                     'raw_material_id' => $item['raw_material_id'],
-                    'qty' => $item['qty'],
+                    'qty' => $qty,
                 ]);
             }
         });
@@ -97,7 +102,7 @@ class RecipeController extends Controller
 
     public function show(Recipe $recipe)
     {
-        $recipe->load(['product.category', 'items.rawMaterial']);
+        $recipe->load(['product.category', 'items.rawMaterial.units']);
         return response()->json($recipe);
     }
 
@@ -106,6 +111,7 @@ class RecipeController extends Controller
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.raw_material_id' => 'required|exists:raw_materials,id',
+            'items.*.raw_material_unit_id' => 'nullable|exists:raw_material_units,id',
             'items.*.qty' => 'required|numeric|min:0.0001',
         ]);
 
@@ -115,10 +121,13 @@ class RecipeController extends Controller
 
             // Create new items
             foreach ($request->items as $item) {
+                $material = RawMaterial::findOrFail($item['raw_material_id']);
+                $qty = $material->quantityToBaseUnit($item['qty'], $item['raw_material_unit_id'] ?? null);
+
                 RecipeItem::create([
                     'recipe_id' => $recipe->id,
                     'raw_material_id' => $item['raw_material_id'],
-                    'qty' => $item['qty'],
+                    'qty' => $qty,
                 ]);
             }
         });

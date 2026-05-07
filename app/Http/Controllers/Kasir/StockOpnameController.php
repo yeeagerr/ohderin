@@ -17,7 +17,7 @@ class StockOpnameController extends Controller
      */
     public function index()
     {
-        $query = StockOpname::with(['user', 'items.rawMaterial']);
+        $query = StockOpname::with(['user', 'items.rawMaterial.units']);
         $totalOpnames = StockOpname::count();
         $thisMonthOpnames = StockOpname::whereMonth('opname_date', now()->month)
                                        ->whereYear('opname_date', now()->year)
@@ -26,7 +26,7 @@ class StockOpnameController extends Controller
         $totalMaterials = RawMaterial::count();
         $stockOpnames = $query->latest('opname_date')->latest()->paginate(10);
 
-        $rawMaterials = RawMaterial::orderBy('name')->get();
+        $rawMaterials = RawMaterial::with('units')->orderBy('name')->get();
         // Calculate system stock for display purpose only
         $systemStocks = RawMaterial::pluck('stock', 'id')->toArray();
         
@@ -45,6 +45,7 @@ class StockOpnameController extends Controller
             'shift' => 'required|string|max:50|in:Pagi,Siang,Malam',
             'items' => 'required|array|min:1',
             'items.*.raw_material_id' => 'required|exists:raw_materials,id',
+            'items.*.raw_material_unit_id' => 'nullable|exists:raw_material_units,id',
             'items.*.qty' => 'required|numeric|min:0',
             'notes' => 'nullable|string'
         ]);
@@ -71,10 +72,13 @@ class StockOpnameController extends Controller
             ]);
 
             foreach ($request->items as $item) {
+                $material = RawMaterial::findOrFail($item['raw_material_id']);
+                $qty = $material->quantityToBaseUnit($item['qty'], $item['raw_material_unit_id'] ?? null);
+
                 StockOpnameItem::create([
                     'stock_opname_id' => $stockOpname->id,
                     'raw_material_id' => $item['raw_material_id'],
-                    'qty' => $item['qty'],
+                    'qty' => $qty,
                 ]);
                 // Note: We do NOT update the `RawMaterial` stock here in the Kasir view 
                 // because it must be approved first by the back office.

@@ -80,7 +80,7 @@ class PosController extends Controller
                         SaleItemModifier::create([
                             'sale_item_id' => $saleItem->id,
                             'modifier_id' => $modifierId,
-                            'value' => $modifierData['value'] ?? null,
+                            'quantity' => $modifierData['quantity'] ?? 1,
                         ]);
                     }
                 }
@@ -90,6 +90,13 @@ class PosController extends Controller
                 $this->deductStockForProduct($item['product_id'], $item['qty']);
             }
         }
+    }
+
+    private function normalizePaymentMethod(?string $paymentMethod, string $fallback = 'cash'): string
+    {
+        return in_array($paymentMethod, ['cash', 'qris', 'debit', 'credit'], true)
+            ? $paymentMethod
+            : $fallback;
     }
 
     /**
@@ -242,7 +249,9 @@ class PosController extends Controller
                 'modifiers' => $item->modifiers->map(function ($modifier) {
                     return [
                         'modifier_id' => $modifier->modifier_id,
-                        'value' => $modifier->value,
+                        'name' => $modifier->modifier->name ?? 'Modifier',
+                        'price_adjustment' => (float) ($modifier->modifier->price_adjustment ?? 0),
+                        'quantity' => (int) ($modifier->quantity ?? 1),
                     ];
                 })->toArray(),
             ];
@@ -310,7 +319,7 @@ class PosController extends Controller
             'items.*.note' => 'nullable|string|max:500',
             'items.*.modifiers' => 'nullable|array',
             'items.*.modifiers.*.modifier_id' => 'nullable|exists:modifiers,id',
-            'items.*.modifiers.*.value' => 'nullable|string|max:255',
+            'items.*.modifiers.*.quantity' => 'nullable|integer|min:1',
             'order_type' => 'required|in:dine_in,take_away',
             'payment_method' => 'nullable|in:cash,qris,debit,credit,drafted',
             'total' => 'required|numeric|min:0',
@@ -333,7 +342,7 @@ class PosController extends Controller
                 $sale->update([
                     'order_type' => $request->order_type,
                     'total' => $request->total,
-                    'payment_method' => $request->payment_method ?? 'drafted',
+                    'payment_method' => $this->normalizePaymentMethod($request->payment_method),
                     'table_id' => $request->table_id,
                     'split_bill_group' => $request->split_bill_group,
                 ]);
@@ -350,7 +359,7 @@ class PosController extends Controller
                     'order_number' => $orderNumber,
                     'order_type' => $request->order_type,
                     'total' => $request->total,
-                    'payment_method' => $request->payment_method ?? 'drafted',
+                    'payment_method' => $this->normalizePaymentMethod($request->payment_method),
                     'table_id' => $request->table_id,
                     'split_bill_group' => $request->split_bill_group,
                     'user_id' => Auth::user()->id ?? 1,
@@ -391,7 +400,7 @@ class PosController extends Controller
             'items.*.note' => 'nullable|string|max:500',
             'items.*.modifiers' => 'nullable|array',
             'items.*.modifiers.*.modifier_id' => 'nullable|exists:modifiers,id',
-            'items.*.modifiers.*.value' => 'nullable|string|max:255',
+            'items.*.modifiers.*.quantity' => 'nullable|integer|min:1',
             'order_type' => 'required|in:dine_in,take_away',
             'payment_method' => 'required|in:cash,qris,debit,credit',
             'total' => 'required|numeric|min:0',

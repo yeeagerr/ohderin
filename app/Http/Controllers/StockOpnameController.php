@@ -17,7 +17,7 @@ class StockOpnameController extends Controller
 {
     public function index(Request $request)
     {
-        $query = StockOpname::with(['user', 'items.rawMaterial']);
+        $query = StockOpname::with(['user', 'items.rawMaterial.units']);
 
         // Filter by date range
         if ($request->filled('start_date')) {
@@ -38,7 +38,7 @@ class StockOpnameController extends Controller
         }
 
         $stockOpnames = $query->latest('opname_date')->latest()->paginate(10);
-        $rawMaterials = RawMaterial::orderBy('name')->get();
+        $rawMaterials = RawMaterial::with('units')->orderBy('name')->get();
         $users = \App\Models\User::orderBy('name')->get();
 
         // Calculate system stock for each raw material
@@ -80,7 +80,7 @@ class StockOpnameController extends Controller
         $date = $request->get('date', today()->toDateString());
         
         $systemStocks = $this->calculateSystemStocks();
-        $rawMaterials = RawMaterial::orderBy('name')->get();
+        $rawMaterials = RawMaterial::with('units')->orderBy('name')->get();
         
         $summary = $rawMaterials->map(function ($material) use ($systemStocks) {
             return [
@@ -103,6 +103,7 @@ class StockOpnameController extends Controller
             'shift' => 'required|string|max:50|in:Pagi,Siang,Malam',
             'items' => 'required|array|min:1',
             'items.*.raw_material_id' => 'required|exists:raw_materials,id',
+            'items.*.raw_material_unit_id' => 'nullable|exists:raw_material_units,id',
             'items.*.qty' => 'required|numeric|min:0',
         ]);
 
@@ -126,14 +127,17 @@ class StockOpnameController extends Controller
             ]);
 
             foreach ($request->items as $item) {
+                $material = RawMaterial::findOrFail($item['raw_material_id']);
+                $qty = $material->quantityToBaseUnit($item['qty'], $item['raw_material_unit_id'] ?? null);
+
                 StockOpnameItem::create([
                     'stock_opname_id' => $stockOpname->id,
                     'raw_material_id' => $item['raw_material_id'],
-                    'qty' => $item['qty'],
+                    'qty' => $qty,
                 ]);
                 
                 // Opname from backoffice directly overrides the system stock
-                RawMaterial::where('id', $item['raw_material_id'])->update(['stock' => $item['qty']]);
+                RawMaterial::where('id', $item['raw_material_id'])->update(['stock' => $qty]);
             }
         });
 
@@ -143,7 +147,7 @@ class StockOpnameController extends Controller
 
     public function show(StockOpname $stockOpname)
     {
-        $stockOpname->load(['user', 'items.rawMaterial']);
+        $stockOpname->load(['user', 'items.rawMaterial.units']);
         $systemStocks = $this->calculateSystemStocks();
         
         return response()->json([
@@ -159,6 +163,7 @@ class StockOpnameController extends Controller
             'shift' => 'required|string|max:50|in:Pagi,Siang,Malam',
             'items' => 'required|array|min:1',
             'items.*.raw_material_id' => 'required|exists:raw_materials,id',
+            'items.*.raw_material_unit_id' => 'nullable|exists:raw_material_units,id',
             'items.*.qty' => 'required|numeric|min:0',
         ]);
 
@@ -192,14 +197,17 @@ class StockOpnameController extends Controller
 
             // Create new items
             foreach ($request->items as $item) {
+                $material = RawMaterial::findOrFail($item['raw_material_id']);
+                $qty = $material->quantityToBaseUnit($item['qty'], $item['raw_material_unit_id'] ?? null);
+
                 StockOpnameItem::create([
                     'stock_opname_id' => $stockOpname->id,
                     'raw_material_id' => $item['raw_material_id'],
-                    'qty' => $item['qty'],
+                    'qty' => $qty,
                 ]);
 
                 // Overrides system stock
-                RawMaterial::where('id', $item['raw_material_id'])->update(['stock' => $item['qty']]);
+                RawMaterial::where('id', $item['raw_material_id'])->update(['stock' => $qty]);
             }
         });
 
@@ -249,7 +257,7 @@ class StockOpnameController extends Controller
      */
     public function print(StockOpname $stockOpname)
     {
-        $stockOpname->load(['user', 'items.rawMaterial']);
+        $stockOpname->load(['user', 'items.rawMaterial.units']);
         $systemStocks = $this->calculateSystemStocks();
         
         return view('dashboard.stock_opname', compact('stockOpname', 'systemStocks'));

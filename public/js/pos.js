@@ -51,15 +51,65 @@ function getModifierAdjustment(item) {
     if (!Array.isArray(item.modifiers)) return 0;
     return item.modifiers.reduce((sum, modifier) => {
         if (!modifier.modifier_id) return sum;
-        const selected = getModifierById(modifier.modifier_id);
-        if (!selected) return sum;
-        return sum + (parseFloat(selected.price_adjustment) || 0);
+        const selected = getModifierById(modifier.modifier_id) || modifier;
+        const quantity = parseInt(modifier.quantity, 10) || 1;
+        return sum + (parseFloat(selected.price_adjustment) || 0) * quantity;
     }, 0);
 }
 
 function getModifierById(modifierId) {
     const id = parseInt(modifierId, 10);
     return modifiersList.find((modifier) => parseInt(modifier.id, 10) === id);
+}
+
+function normalizeModifier(modifier) {
+    const modifierId = modifier?.modifier_id
+        ? parseInt(modifier.modifier_id, 10)
+        : null;
+    const selected = modifierId ? getModifierById(modifierId) : null;
+    const quantity = parseInt(modifier?.quantity, 10) || 1;
+
+    return {
+        modifier_id: modifierId,
+        quantity: quantity > 0 ? quantity : 1,
+        name: modifier?.name || selected?.name || null,
+        price_adjustment:
+            parseFloat(modifier?.price_adjustment ?? selected?.price_adjustment) || 0,
+    };
+}
+
+function getModifierPayload(modifiers) {
+    if (!Array.isArray(modifiers)) return [];
+    return modifiers
+        .map(normalizeModifier)
+        .filter((modifier) => modifier.modifier_id)
+        .map((modifier) => ({
+            modifier_id: modifier.modifier_id,
+            quantity: modifier.quantity,
+        }));
+}
+
+function getItemSubtotal(item) {
+    return ((parseFloat(item.price) || 0) + getModifierAdjustment(item)) * (parseInt(item.qty, 10) || 1);
+}
+
+function buildSalePayload(extra = {}) {
+    const items = cart.map((item) => ({
+        product_id: item.product_id,
+        qty: parseInt(item.qty, 10) || 1,
+        price: parseFloat(item.price) || 0,
+        note: item.note || null,
+        modifiers: getModifierPayload(item.modifiers),
+    }));
+
+    return {
+        items,
+        order_type: selectedOrderType,
+        payment_method: selectedPaymentMethod,
+        table_id: selectedTableId,
+        split_bill_group: splitBillGroup,
+        ...extra,
+    };
 }
 
 function rememberProductModifiers(product) {
@@ -99,7 +149,9 @@ function hydrateCartItems(items) {
             price: parseFloat(item.price) || 0,
             qty: parseInt(item.qty) || 1,
             note: item.note || null,
-            modifiers: Array.isArray(item.modifiers) ? item.modifiers : [],
+            modifiers: Array.isArray(item.modifiers)
+                ? item.modifiers.map(normalizeModifier)
+                : [],
             allowed_modifiers: Array.isArray(item.allowed_modifiers)
                 ? item.allowed_modifiers
                 : productModifiers,
@@ -134,7 +186,7 @@ function addModifier(itemIndex) {
     if (!Array.isArray(cart[itemIndex].modifiers)) {
         cart[itemIndex].modifiers = [];
     }
-    cart[itemIndex].modifiers.push({ modifier_id: null, value: "" });
+    cart[itemIndex].modifiers.push({ modifier_id: null, quantity: 1 });
     saveCart();
     renderCart();
 }
@@ -153,15 +205,21 @@ function updateModifierSelection(itemIndex, modifierIndex, modifierId) {
     const isAllowed = allowed.some(
         (modifier) => parseInt(modifier.id, 10) === id,
     );
-    cart[itemIndex].modifiers[modifierIndex].modifier_id =
-        id && isAllowed ? id : null;
+    const selectedModifier = id && isAllowed ? getModifierById(id) : null;
+    cart[itemIndex].modifiers[modifierIndex] = {
+        ...cart[itemIndex].modifiers[modifierIndex],
+        modifier_id: selectedModifier ? id : null,
+        name: selectedModifier?.name || null,
+        price_adjustment: parseFloat(selectedModifier?.price_adjustment) || 0,
+    };
     saveCart();
     renderCart();
 }
 
-function updateModifierValue(itemIndex, modifierIndex, value) {
+function updateModifierQuantity(itemIndex, modifierIndex, quantity) {
     if (!cart[itemIndex] || !Array.isArray(cart[itemIndex].modifiers)) return;
-    cart[itemIndex].modifiers[modifierIndex].value = value;
+    const qty = parseInt(quantity, 10) || 1;
+    cart[itemIndex].modifiers[modifierIndex].quantity = qty > 0 ? qty : 1;
     saveCart();
     renderCart();
 }
@@ -438,8 +496,7 @@ function deleteCurrentDraft() {
 
 function calculateTotals() {
     const subtotal = cart.reduce((sum, item) => {
-        const adjustment = getModifierAdjustment(item);
-        return sum + (item.price + adjustment) * item.qty;
+        return sum + getItemSubtotal(item);
     }, 0);
     const tax = subtotal * TAX_RATE;
     const total = subtotal + tax;
@@ -468,7 +525,6 @@ function renderCart() {
     } else {
         let html = "";
         cart.forEach((item, index) => {
-            const adjustment = getModifierAdjustment(item);
             const allowedModifiers = getAllowedModifiers(item);
             const modRows =
                 Array.isArray(item.modifiers) && item.modifiers.length
@@ -476,18 +532,19 @@ function renderCart() {
                           .map((modifier, modIndex) => {
                               const selectedModifier = getModifierById(
                                   modifier.modifier_id,
-                              );
+                              ) || modifier;
+                              const modQuantity = parseInt(modifier.quantity, 10) || 1;
+                              const pricePerUnit = parseFloat(selectedModifier?.price_adjustment) || 0;
+                              const totalModifierPrice = pricePerUnit * modQuantity;
                               const priceInfo = selectedModifier
-                                  ? (parseFloat(
-                                        selectedModifier.price_adjustment,
-                                    ) || 0) >= 0
-                                      ? ` +${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
-                                      : ` ${formatCurrency(parseFloat(selectedModifier.price_adjustment) || 0)}`
+                                  ? totalModifierPrice >= 0
+                                      ? ` +${formatCurrency(totalModifierPrice)} (${formatCurrency(pricePerUnit)} x ${modQuantity})`
+                                      : ` ${formatCurrency(totalModifierPrice)} (${formatCurrency(pricePerUnit)} x ${modQuantity})`
                                   : "";
                               return `
                           <div class="mt-3 p-3 bg-white border border-gray-200 rounded-xl space-y-2">
-                              <div class="grid grid-cols-2 gap-2">
-                                  <select onchange="updateModifierSelection(${index}, ${modIndex}, this.value)" class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
+                              <div class="grid grid-cols-3 gap-2">
+                                  <select onchange="updateModifierSelection(${index}, ${modIndex}, this.value)" class="col-span-2 w-full border border-gray-300 rounded-xl px-3 py-2 text-sm">
                                       <option value="">Pilih modifier</option>
                                       ${allowedModifiers
                                           .map(
@@ -501,13 +558,11 @@ function renderCart() {
                                   </select>
                                   <button onclick="removeModifier(${index}, ${modIndex})" class="px-3 py-2 bg-red-100 text-red-600 rounded-xl text-sm">Hapus</button>
                               </div>
-                              <input
-                                  type="text"
-                                  class="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm"
-                                  placeholder="Catatan modifier"
-                                  value="${escapeAttribute(modifier.value)}"
-                                  onchange="updateModifierValue(${index}, ${modIndex}, this.value)"
-                              />
+                              <div class="flex items-center gap-2">
+                                  <label class="text-xs text-gray-600 whitespace-nowrap">Qty:</label>
+                                  <input type="number" min="1" value="${modQuantity}" onchange="updateModifierQuantity(${index}, ${modIndex}, this.value)" class="w-16 border border-gray-300 rounded-lg px-2 py-1 text-sm" />
+                              </div>
+
                               ${priceInfo ? `<p class="text-xs text-gray-500">Harga modifier:${priceInfo}</p>` : ""}
                           </div>
                       `;
@@ -534,7 +589,7 @@ function renderCart() {
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <p class="font-semibold text-gray-900">${formatCurrency((item.price + adjustment) * item.qty)}</p>
+                            <p class="font-semibold text-gray-900">${formatCurrency(getItemSubtotal(item))}</p>
                             <button onclick="removeFromCart(${item.id})" class="p-1 text-red-500 hover:bg-red-50 rounded">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -830,17 +885,38 @@ function printReceipt() {
 
     const receiptWindow = window.open("", "_blank", "width=400,height=600");
     const itemsHtml = lastTransaction.items
-        .map(
-            (item) => `
+        .map((item) => {
+            const validModifiers = Array.isArray(item.modifiers)
+                ? item.modifiers
+                      .map(normalizeModifier)
+                      .filter((modifier) => modifier.modifier_id)
+                : [];
+            const modifierLines = validModifiers
+                .map((mod) => {
+                    const adjustment = parseFloat(mod.price_adjustment) || 0;
+                    const amount = adjustment * mod.quantity;
+                    const priceText = adjustment
+                        ? ` - ${formatCurrency(amount)}`
+                        : "";
+                    return `<p class="text-xs text-gray-600">- ${mod.name || "Modifier"} (qty: ${mod.quantity})${priceText}</p>`;
+                })
+                .join("");
+
+            return `
         <div class="flex items-start justify-between gap-3">
             <div class="flex-1 break-words">
                 <p class="text-sm font-semibold text-xl leading-tight">${item.name}</p>
                 <p class="text-sm font-semibold">${item.qty}x ${formatCurrency(item.price)}</p>
+                ${modifierLines ? `
+                <div class="mt-2 space-y-1">
+                    ${modifierLines}
+                </div>
+                ` : ''}
             </div>
-            <p class="text-sm text-xl font-[500] whitespace-nowrap flex-shrink-0">${formatCurrency(item.price * item.qty)}</p>
+            <p class="text-sm text-xl font-[500] whitespace-nowrap flex-shrink-0">${formatCurrency(getItemSubtotal(item))}</p>
         </div>
-    `,
-        )
+    `;
+        })
         .join("");
 
     const receiptHtml = `
@@ -997,17 +1073,12 @@ function processCheckout() {
     const paidValue =
         parseFloat(document.getElementById("paidAmountInput").value) || total;
     const changeValue = paidValue - total;
-    const payload = {
-        items: cart,
-        order_type: selectedOrderType,
-        payment_method: selectedPaymentMethod,
+    const payload = buildSalePayload({
         total: total,
         paid_amount: paidValue,
         change_amount: changeValue,
-        draft_id: currentDraftId, // Include draft_id if resuming
-        table_id: selectedTableId,
-        split_bill_group: splitBillGroup,
-    };
+        draft_id: currentDraftId,
+    });
 
     if (!navigator.onLine) {
         pushToQueue(payload);
@@ -1107,15 +1178,10 @@ function holdOrder() {
     holdBtn.disabled = true;
 
     const { total } = calculateTotals();
-    const payload = {
-        items: cart,
-        order_type: selectedOrderType,
-        payment_method: selectedPaymentMethod,
+    const payload = buildSalePayload({
         total: total,
-        draft_id: currentDraftId, // Include draft_id if updating existing draft
-        table_id: selectedTableId,
-        split_bill_group: splitBillGroup,
-    };
+        draft_id: currentDraftId,
+    });
 
     fetch(routeHold, {
         method: "POST",

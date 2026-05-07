@@ -12,7 +12,7 @@ class PurchaseController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Purchase::with('rawMaterial');
+        $query = Purchase::with('rawMaterial.units');
 
         // Filter by raw material
         if ($request->filled('raw_material')) {
@@ -33,7 +33,7 @@ class PurchaseController extends Controller
         }
 
         $purchases = $query->latest('purchase_date')->paginate(10);
-        $rawMaterials = RawMaterial::orderBy('name')->get();
+        $rawMaterials = RawMaterial::with('units')->orderBy('name')->get();
 
         // Stats
         $totalPurchases = Purchase::count();
@@ -57,13 +57,24 @@ class PurchaseController extends Controller
     {
         $request->validate([
             'raw_material_id' => 'required|exists:raw_materials,id',
+            'raw_material_unit_id' => 'nullable|exists:raw_material_units,id',
             'qty' => 'required|numeric|min:0.01',
             'price' => 'required|numeric|min:0',
             'purchase_date' => 'required|date',
         ]);
 
         DB::transaction(function () use ($request) {
-            $purchase = Purchase::create($request->all());
+            $material = RawMaterial::findOrFail($request->raw_material_id);
+            $unitId = $request->input('raw_material_unit_id');
+            $qty = $material->quantityToBaseUnit($request->qty, $unitId);
+            $price = $material->priceToBaseUnit($request->price, $unitId);
+
+            $purchase = Purchase::create([
+                'raw_material_id' => $request->raw_material_id,
+                'qty' => $qty,
+                'price' => $price,
+                'purchase_date' => $request->purchase_date,
+            ]);
             $purchase->rawMaterial->increment('stock', $purchase->qty);
         });
 
@@ -74,6 +85,7 @@ class PurchaseController extends Controller
     {
         $request->validate([
             'raw_material_id' => 'required|exists:raw_materials,id',
+            'raw_material_unit_id' => 'nullable|exists:raw_material_units,id',
             'qty' => 'required|numeric|min:0.01',
             'price' => 'required|numeric|min:0',
             'purchase_date' => 'required|date',
@@ -81,8 +93,17 @@ class PurchaseController extends Controller
 
         DB::transaction(function () use ($request, $purchase) {
             $oldQty = $purchase->qty;
+            $material = RawMaterial::findOrFail($request->raw_material_id);
+            $unitId = $request->input('raw_material_unit_id');
+            $qty = $material->quantityToBaseUnit($request->qty, $unitId);
+            $price = $material->priceToBaseUnit($request->price, $unitId);
             
-            $purchase->fill($request->all());
+            $purchase->fill([
+                'raw_material_id' => $request->raw_material_id,
+                'qty' => $qty,
+                'price' => $price,
+                'purchase_date' => $request->purchase_date,
+            ]);
             
             if ($purchase->isDirty('raw_material_id')) {
                 // If material changed, revert old completely and increment new completely

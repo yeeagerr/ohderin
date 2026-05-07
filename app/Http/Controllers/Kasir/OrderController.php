@@ -93,6 +93,10 @@ class OrderController extends Controller
             'created_at' => $sale->created_at->format('d M Y'),
             'created_time' => $sale->created_at->format('H:i'),
             'items' => $sale->items->map(function ($item) {
+                $modifierAdjustment = $item->modifiers->sum(function ($modifier) {
+                    return (float) ($modifier->modifier->price_adjustment ?? 0) * (int) ($modifier->quantity ?? 1);
+                });
+
                 return [
                     'id' => $item->id,
                     'name' => $item->product->name ?? 'Deleted Product',
@@ -100,14 +104,15 @@ class OrderController extends Controller
                     'category' => $item->product->category ?? '-',
                     'qty' => $item->qty,
                     'price' => $item->price,
-                    'subtotal' => $item->price * $item->qty,
+                    'subtotal' => ($item->price + $modifierAdjustment) * $item->qty,
                     'note' => $item->note,
                     'allowed_modifiers' => $item->product->modifiers->where('is_active', true)->values(),
                     'modifiers' => $item->modifiers->map(function ($modifier) {
                         return [
                             'modifier_id' => $modifier->modifier_id,
                             'name' => $modifier->modifier->name ?? 'Modifier',
-                            'value' => $modifier->value,
+                            'price_adjustment' => (float) ($modifier->modifier->price_adjustment ?? 0),
+                            'quantity' => $modifier->quantity ?? 1,
                         ];
                     }),
                 ];

@@ -428,8 +428,9 @@
                             <div class="bg-gray-50 rounded-xl border border-gray-200">
                                 <!-- Table Header -->
                                 <div class="grid grid-cols-12 gap-2 px-4 py-3 bg-gray-100 rounded-t-xl text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                    <div class="col-span-4">Nama Bahan</div>
-                                    <div class="col-span-2 text-center">Satuan</div>
+                                    <div class="col-span-3">Nama Bahan</div>
+                                    <div class="col-span-2 text-center">UOM</div>
+                                    <div class="col-span-1 text-center">Base</div>
                                     <div class="col-span-2 text-center">Stok Sistem</div>
                                     <div class="col-span-2 text-center">Stok Fisik</div>
                                     <div class="col-span-1 text-center">Selisih</div>
@@ -528,8 +529,9 @@
                             
                             <div class="bg-gray-50 rounded-xl border border-gray-200">
                                 <div class="grid grid-cols-12 gap-2 px-4 py-3 bg-gray-100 rounded-t-xl text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                    <div class="col-span-4">Nama Bahan</div>
-                                    <div class="col-span-2 text-center">Satuan</div>
+                                    <div class="col-span-3">Nama Bahan</div>
+                                    <div class="col-span-2 text-center">UOM</div>
+                                    <div class="col-span-1 text-center">Base</div>
                                     <div class="col-span-2 text-center">Stok Sistem</div>
                                     <div class="col-span-2 text-center">Stok Fisik</div>
                                     <div class="col-span-1 text-center">Selisih</div>
@@ -769,10 +771,11 @@
     function createItemRow(prefix, index, material = null, qty = '') {
         const systemStock = material ? (systemStocksData[material.id] || 0) : 0;
         const colorClass = prefix === 'add' ? 'orange' : 'blue';
+        const units = getMaterialUnits(material);
         
         return `
             <div class="stock-item-row grid grid-cols-12 gap-2 items-center bg-white p-2 rounded-lg border border-gray-200" data-index="${index}">
-                <div class="col-span-4">
+                <div class="col-span-3">
                     <select name="items[${index}][raw_material_id]" required
                             class="w-full px-2 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-${colorClass}-400 transition"
                             onchange="updateRowData(this, ${index}, '${prefix}')">
@@ -780,7 +783,14 @@
                         ${rawMaterialsData.map(m => `<option value="${m.id}" data-unit="${m.unit}" ${material && m.id === material.id ? 'selected' : ''}>${m.name}</option>`).join('')}
                     </select>
                 </div>
-                <div class="col-span-2 text-center">
+                <div class="col-span-2">
+                    <select name="items[${index}][raw_material_unit_id]"
+                            class="unit-select-${index} w-full px-2 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-${colorClass}-400 transition"
+                            onchange="calculateDiff(${index}, '${prefix}')">
+                        ${units.map(unit => `<option value="${unit.id || ''}" data-name="${unit.name}" data-ratio="${unit.ratio || 1}">${unit.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="col-span-1 text-center">
                     <span class="unit-${index} text-sm text-gray-500">${material?.unit || '-'}</span>
                 </div>
                 <div class="col-span-2 text-center">
@@ -808,6 +818,12 @@
         `;
     }
 
+    function getMaterialUnits(material) {
+        return (material?.units?.length ? material.units : [{ id: '', name: material?.unit || '-', ratio: 1 }])
+            .slice()
+            .sort((a, b) => (parseFloat(a.ratio) || 1) - (parseFloat(b.ratio) || 1));
+    }
+
     function addStockItem(prefix) {
         const container = document.getElementById(prefix + 'ItemsContainer');
         const index = prefix === 'add' ? addItemIndex++ : editItemIndex++;
@@ -830,7 +846,12 @@
         const material = rawMaterialsData.find(m => m.id == materialId);
         const systemStock = materialId ? (systemStocksData[materialId] || 0) : 0;
         const row = select.closest('.stock-item-row');
+        const units = getMaterialUnits(material);
+        const unitSelect = row.querySelector(`.unit-select-${index}`);
         
+        if (unitSelect) {
+            unitSelect.innerHTML = units.map(unit => `<option value="${unit.id || ''}" data-name="${unit.name}" data-ratio="${unit.ratio || 1}">${unit.name}</option>`).join('');
+        }
         row.querySelector(`.unit-${index}`).textContent = material?.unit || '-';
         row.querySelector(`.system-stock-${index}`).textContent = parseFloat(systemStock).toFixed(2);
         calculateDiff(index, prefix);
@@ -843,7 +864,10 @@
         
         const systemStock = parseFloat(row.querySelector(`.system-stock-${index}`).textContent) || 0;
         const physicalStock = parseFloat(row.querySelector(`input[name*="[qty]"]`).value) || 0;
-        const diff = physicalStock - systemStock;
+        const unitSelect = row.querySelector(`.unit-select-${index}`);
+        const ratio = parseFloat(unitSelect?.options[unitSelect.selectedIndex]?.dataset.ratio) || 1;
+        const basePhysicalStock = physicalStock * ratio;
+        const diff = basePhysicalStock - systemStock;
         
         const diffElement = row.querySelector(`.diff-${index}`);
         diffElement.textContent = diff.toFixed(2);
