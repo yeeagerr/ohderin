@@ -9,12 +9,58 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleItemModifier;
 use App\Models\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PosController extends Controller
 {
+    /**
+     * Apply shared visibility rules for products shown in POS.
+     *
+     * Rules:
+     * - Regular product: must have a recipe with quantity and at least one recipe item.
+     * - Combo/package: must have package items, and every component product must exist,
+     *   be active, not a package, and have a valid recipe.
+     */
+    private function applyPosVisibilityConstraints(Builder $query): Builder
+    {
+        return $query->where(function (Builder $productQuery) {
+            $productQuery
+                ->where(function (Builder $regularProductQuery) {
+                    $regularProductQuery
+                        ->where('is_package', false)
+                        ->whereHas('recipe', function (Builder $recipeQuery) {
+                            $recipeQuery
+                                ->whereNotNull('quantity')
+                                ->whereHas('items');
+                        });
+                })
+                ->orWhere(function (Builder $packageProductQuery) {
+                    $packageProductQuery
+                        ->where('is_package', true)
+                        ->whereHas('packageItems')
+                        ->whereDoesntHave('packageItems', function (Builder $packageItemQuery) {
+                            $packageItemQuery->where(function (Builder $invalidPackageItemQuery) {
+                                $invalidPackageItemQuery
+                                    ->whereDoesntHave('product')
+                                    ->orWhereHas('product', function (Builder $componentProductQuery) {
+                                        $componentProductQuery
+                                            ->where('is_active', false)
+                                            ->orWhere('is_package', true)
+                                            ->orWhereDoesntHave('recipe', function (Builder $componentRecipeQuery) {
+                                                $componentRecipeQuery
+                                                    ->whereNotNull('quantity')
+                                                    ->whereHas('items');
+                                            });
+                                    });
+                            });
+                        });
+                });
+        });
+    }
+
     /**
      * Generate unique order number based on today's date
      */
@@ -109,25 +155,18 @@ class PosController extends Controller
             'modifiers' => function ($query) {
                 $query->where('is_active', true)->orderBy('name');
             }
-        ])->where('is_active', true)->where(function ($q) {
-            $q->where('is_package', true)
-                ->orWhereHas('recipe', function ($subQ) {
-                    $subQ->whereNotNull('quantity');
-                });
-        })->orderBy('name')->paginate(20);
+        ])->where('is_active', true);
+
+        $this->applyPosVisibilityConstraints($products);
+        $products = $products->orderBy('name')->paginate(20);
 
         $categories = Product::where('is_active', true)
-            ->where(function ($q) {
-                $q->where('is_package', true)
-                    ->orWhereHas('recipe', function ($subQ) {
-                        $subQ->whereNotNull('quantity');
-                    });
-            })
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->select('categories.id', 'categories.name')
             ->distinct()
-            ->orderBy('categories.name')
-            ->get();
+            ->orderBy('categories.name');
+        $this->applyPosVisibilityConstraints($categories);
+        $categories = $categories->get();
 
         $tables = Table::orderBy('name')->get();
         $modifiers = Modifier::where('is_active', true)->orderBy('name')->get();
@@ -136,13 +175,9 @@ class PosController extends Controller
                 $query->where('is_active', true)->orderBy('name');
             }
         ])
-            ->where('is_active', true)
-            ->where(function ($q) {
-                $q->where('is_package', true)
-                    ->orWhereHas('recipe', function ($subQ) {
-                        $subQ->whereNotNull('quantity');
-                    });
-            })
+            ->where('is_active', true);
+        $this->applyPosVisibilityConstraints($productModifiers);
+        $productModifiers = $productModifiers
             ->get()
             ->mapWithKeys(function ($product) {
                 return [$product->id => $product->modifiers->values()];
@@ -162,13 +197,8 @@ class PosController extends Controller
                 $query->where('is_active', true)->orderBy('name');
             }
         ])
-            ->where('is_active', true)
-            ->where(function ($q) {
-                $q->where('is_package', true)
-                    ->orWhereHas('recipe', function ($subQ) {
-                        $subQ->whereNotNull('quantity');
-                    });
-            });
+            ->where('is_active', true);
+        $this->applyPosVisibilityConstraints($query);
 
         // Search by name
         if ($request->filled('search')) {
@@ -294,17 +324,12 @@ class PosController extends Controller
     public function getCategories()
     {
         $categories = Product::where('products.is_active', true)
-            ->where(function ($q) {
-                $q->where('is_package', true)
-                    ->orWhereHas('recipe', function ($subQ) {
-                        $subQ->whereNotNull('quantity');
-                    });
-            })
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->select('categories.id', 'categories.name')
             ->distinct()
-            ->orderBy('categories.name')
-            ->get();
+            ->orderBy('categories.name');
+        $this->applyPosVisibilityConstraints($categories);
+        $categories = $categories->get();
 
         return response()->json($categories);
     }
