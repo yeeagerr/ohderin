@@ -20,7 +20,7 @@ class SalesReportController extends Controller
             : Carbon::now()->endOfDay();
 
         $query = Sale::whereBetween('created_at', [$startDate, $endDate])
-            ->with(['items.product', 'cashier']);
+            ->with(['items.product', 'cashier', 'register']);
 
         if ($request->filled('payment_method') && $request->payment_method !== 'all') {
             $query->where('payment_method', $request->payment_method);

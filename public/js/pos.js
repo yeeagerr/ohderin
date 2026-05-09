@@ -16,11 +16,152 @@ let routeProducts = "";
 let routeCheckout = "";
 let routeHold = "";
 let routeDrafts = "";
+let routeRegisterStatus = "";
 let csrfToken = "";
+let registersList = [];
+let activeRegisterSession = null;
 
 const CART_KEY = "pos_cart";
 const RESUME_KEY = "pos_resume_cart";
 const QUEUE_KEY = "pos_offline_queue";
+
+function updateRegisterInfoLabel() {
+    const el = document.getElementById("activeRegisterInfo");
+    if (!el) return;
+    if (activeRegisterSession && activeRegisterSession.register_name) {
+        el.innerHTML = `Session: <span class="font-semibold text-orange-600">${activeRegisterSession.register_name}</span>`;
+        return;
+    }
+    el.innerHTML =
+        '<span class="text-red-500 font-medium">Belum ada session kasir aktif</span>';
+}
+
+function showRegisterPicker() {
+    const modal = document.getElementById("registerPickerModal");
+    const list = document.getElementById("registerPickerList");
+    if (!modal || !list) return;
+
+    let html = "";
+    registersList.forEach((register) => {
+        html += `
+            <div class="border border-gray-200 rounded-xl p-3 flex items-center justify-between">
+                <div>
+                    <p class="font-medium text-gray-900">${register.name}</p>
+                    <p class="text-xs ${register.is_active ? "text-green-600" : "text-red-500"}">${register.is_active ? "Aktif" : "Nonaktif"}</p>
+                </div>
+                <button onclick="enterRegisterSession(${register.id}, '${String(
+            register.name,
+        ).replace(/'/g, "\\'")}')" class="px-3 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600">
+                    Masuk Session
+                </button>
+            </div>
+        `;
+    });
+    list.innerHTML =
+        html ||
+        '<div class="text-sm text-gray-500">Belum ada register. Buat dulu di menu Kasir.</div>';
+    modal.classList.remove("hidden");
+}
+
+function hideRegisterPicker() {
+    const modal = document.getElementById("registerPickerModal");
+    if (modal) modal.classList.add("hidden");
+}
+
+function enterRegisterSession(registerId, registerName) {
+    fetch(`/kasir/registers/${registerId}/enter`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": csrfToken,
+        },
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (!data.success) return alert(data.message || "Gagal masuk session");
+            if (data.needs_open_register) {
+                hideRegisterPicker();
+                document.getElementById("openRegisterIdPos").value = registerId;
+                document.getElementById(
+                    "openRegisterNamePos",
+                ).textContent = `Kasir: ${registerName}`;
+                document
+                    .getElementById("openRegisterModalPos")
+                    .classList.remove("hidden");
+                return;
+            }
+            window.location.reload();
+        })
+        .catch(() => alert("Gagal masuk session"));
+}
+
+function hideOpenRegisterPos() {
+    const modal = document.getElementById("openRegisterModalPos");
+    if (modal) modal.classList.add("hidden");
+}
+
+function submitOpenRegisterPos() {
+    const registerId = document.getElementById("openRegisterIdPos").value;
+    const openingCash = parseFloat(
+        document.getElementById("openingCashInputPos").value || 0,
+    );
+    const openingNote = document.getElementById("openingNoteInputPos").value || "";
+    fetch(`/kasir/registers/${registerId}/open`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": csrfToken,
+        },
+        body: JSON.stringify({
+            opening_cash: openingCash,
+            opening_note: openingNote,
+        }),
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (!data.success) return alert(data.message || "Gagal open register");
+            window.location.reload();
+        })
+        .catch(() => alert("Gagal open register"));
+}
+
+function showCloseRegisterFromPos(sessionId, registerName) {
+    document.getElementById("closeSessionIdPos").value = sessionId;
+    document.getElementById(
+        "closeRegisterNamePos",
+    ).textContent = `Kasir: ${registerName}`;
+    document.getElementById("closeRegisterModalPos").classList.remove("hidden");
+}
+
+function hideCloseRegisterFromPos() {
+    document.getElementById("closeRegisterModalPos").classList.add("hidden");
+}
+
+function submitCloseRegisterFromPos() {
+    const sessionId = document.getElementById("closeSessionIdPos").value;
+    const closingCash = parseFloat(
+        document.getElementById("closingCashInputPos").value || 0,
+    );
+    const closingNote = document.getElementById("closingNoteInputPos").value || "";
+    fetch(`/kasir/register-sessions/${sessionId}/close`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": csrfToken,
+        },
+        body: JSON.stringify({
+            closing_cash: closingCash,
+            closing_note: closingNote,
+        }),
+    })
+        .then((r) => r.json())
+        .then((data) => {
+            if (!data.success) return alert(data.message || "Gagal close register");
+            alert("Register berhasil ditutup");
+            window.location.reload();
+        })
+        .catch(() => alert("Gagal close register"));
+}
 
 function saveCart() {
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
@@ -509,6 +650,9 @@ function renderCart() {
     const cartContainer = document.getElementById("cartItems");
     const { subtotal, tax, total, itemCount } = calculateTotals();
     const holdBtn = document.getElementById("holdBtn");
+    const hasActiveRegisterSession = !!(
+        activeRegisterSession && activeRegisterSession.id
+    );
 
     if (cart.length === 0) {
         cartContainer.innerHTML = `
@@ -613,8 +757,8 @@ function renderCart() {
             `;
         });
         cartContainer.innerHTML = html;
-        document.getElementById("checkoutBtn").disabled = false;
-        if (holdBtn) holdBtn.disabled = false;
+        document.getElementById("checkoutBtn").disabled = !hasActiveRegisterSession;
+        if (holdBtn) holdBtn.disabled = !hasActiveRegisterSession;
     }
 
     document.getElementById("cartItemCount").textContent =
@@ -785,6 +929,11 @@ function loadMoreProducts() {
 
 function showPaymentModal() {
     if (cart.length === 0) return;
+    if (!activeRegisterSession || !activeRegisterSession.id) {
+        alert("Pilih kasir dan open register terlebih dahulu.");
+        showRegisterPicker();
+        return;
+    }
 
     const { total } = calculateTotals();
     document.getElementById("modalTotal").textContent = formatCurrency(total);
@@ -953,7 +1102,7 @@ function printReceipt() {
                 </div>
                 <div class="flex items-center justify-between">
                     <p class="text-xs font-semibold">Kasir</p>
-                    <p class="text-xs font-semibold">Staff</p>
+                    <p class="text-xs font-semibold">${activeRegisterSession?.register_name || "Staff"}</p>
                 </div>
                 <div class="flex items-center justify-between">
                     <p class="text-xs font-semibold">Metode Pembayaran</p>
@@ -1173,6 +1322,11 @@ function hideSuccessModal() {
 
 function holdOrder() {
     if (cart.length === 0) return;
+    if (!activeRegisterSession || !activeRegisterSession.id) {
+        alert("Pilih kasir dan open register terlebih dahulu.");
+        showRegisterPicker();
+        return;
+    }
 
     const holdBtn = document.getElementById("holdBtn");
     holdBtn.disabled = true;
@@ -1366,6 +1520,7 @@ document.addEventListener("DOMContentLoaded", function () {
         routeCheckout = posConfig.dataset.routeCheckout || "";
         routeHold = posConfig.dataset.routeHold || "";
         routeDrafts = posConfig.dataset.routeDrafts || "";
+        routeRegisterStatus = posConfig.dataset.routeRegisterStatus || "";
         csrfToken = posConfig.dataset.csrfToken || "";
         try {
             modifiersList = JSON.parse(posConfig.dataset.modifiers || "[]");
@@ -1373,10 +1528,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 posConfig.dataset.productModifiers || "{}",
             );
             tablesList = JSON.parse(posConfig.dataset.tables || "[]");
+            registersList = JSON.parse(posConfig.dataset.registers || "[]");
+            const activeSessionRaw = posConfig.dataset.activeRegisterSession || "null";
+            const activeSessionParsed = JSON.parse(activeSessionRaw);
+            activeRegisterSession = activeSessionParsed
+                ? {
+                      id: activeSessionParsed.id,
+                      register_id: activeSessionParsed.register_id,
+                      register_name: activeSessionParsed.register?.name || "",
+                  }
+                : null;
         } catch (error) {
             modifiersList = [];
             productModifierMap = {};
             tablesList = [];
+            registersList = [];
+            activeRegisterSession = null;
         }
     }
 
@@ -1409,6 +1576,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const splitBillInput = document.getElementById("splitBillInput");
     if (splitBillInput) splitBillInput.value = splitBillGroup || "";
     updateFloatingBadge();
+    updateRegisterInfoLabel();
     updateOfflineBanner();
     loadDraftCount();
 

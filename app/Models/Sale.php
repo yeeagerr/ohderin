@@ -14,6 +14,8 @@ class Sale extends Model
         'change_amount',
         'payment_method',
         'user_id',
+        'register_id',
+        'register_session_id',
         'status',
         'table_id',
         'split_bill_group'
@@ -32,6 +34,16 @@ class Sale extends Model
     public function table()
     {
         return $this->belongsTo(Table::class);
+    }
+
+    public function register()
+    {
+        return $this->belongsTo(Register::class);
+    }
+
+    public function registerSession()
+    {
+        return $this->belongsTo(RegisterSession::class, 'register_session_id');
     }
 
     public function scopeDraft($query)

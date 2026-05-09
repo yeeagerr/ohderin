@@ -2,7 +2,18 @@
 
 use App\Http\Controllers\Kasir\OrderController;
 use App\Http\Controllers\Kasir\PosController;
+use App\Http\Controllers\Kasir\RegisterController;
 use Illuminate\Support\Facades\Route;
+
+// Register Management
+Route::get('/kasir/registers', [RegisterController::class, 'index'])->name('kasir.registers.index');
+Route::post('/kasir/registers', [RegisterController::class, 'store'])->name('kasir.registers.store');
+Route::put('/kasir/registers/{register}', [RegisterController::class, 'update'])->name('kasir.registers.update');
+Route::delete('/kasir/registers/{register}', [RegisterController::class, 'destroy'])->name('kasir.registers.delete');
+Route::post('/kasir/registers/{register}/enter', [RegisterController::class, 'enter'])->name('kasir.registers.enter');
+Route::post('/kasir/registers/{register}/open', [RegisterController::class, 'open'])->name('kasir.registers.open');
+Route::post('/kasir/register-sessions/{registerSession}/close', [RegisterController::class, 'close'])->name('kasir.registers.close');
+Route::get('/kasir/register-status', [RegisterController::class, 'status'])->name('kasir.registers.status');
 
 // POS Routes
 Route::get('/kasir/pos', [PosController::class, 'index'])->name('kasir.pos');

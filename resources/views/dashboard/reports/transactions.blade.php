@@ -119,6 +119,7 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">No. Order</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Tanggal & Waktu</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">POS</th>
                             <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Metode Pembayaran</th>
                             <th class="px-6 py-3 text-center text-sm font-semibold text-gray-900">Item</th>
                             <th class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Total</th>
@@ -138,6 +139,9 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 {{ $transaction->created_at->translatedFormat('d/m/Y H:i:s') }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                {{ $transaction->register->name ?? '-' }}
                             </td>
                             <td class="px-6 py-4 text-sm">
                                 <span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -170,7 +174,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-8 text-center text-gray-600">Tidak ada transaksi ditemukan</td>
+                            <td colspan="9" class="px-6 py-8 text-center text-gray-600">Tidak ada transaksi ditemukan</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -220,16 +224,16 @@
                     </div>
                     <div>
                         <p class="text-gray-600 text-sm">Total</p>
-                        <p class="font-semibold text-gray-900">${cells[4].textContent.trim()}</p>
+                        <p class="font-semibold text-gray-900">${cells[5].textContent.trim()}</p>
                     </div>
                     <div>
                         <p class="text-gray-600 text-sm">Dibayar</p>
-                        <p class="font-semibold text-gray-900">${cells[5].textContent.trim()}</p>
+                        <p class="font-semibold text-gray-900">${cells[6].textContent.trim()}</p>
                     </div>
                 </div>
                 <div class="bg-blue-50 p-4 rounded-lg">
                     <p class="text-sm text-blue-900">
-                        <strong>Kembalian:</strong> ${cells[6].textContent.trim()}
+                        <strong>Kembalian:</strong> ${cells[7].textContent.trim()}
                     </p>
                 </div>
             </div>

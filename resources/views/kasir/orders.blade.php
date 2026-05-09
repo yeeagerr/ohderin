@@ -19,6 +19,12 @@
                         <p class="text-xs lg:text-sm text-gray-500">Manage and track all your orders</p>
                     </div>
                     <div class="flex items-center space-x-2 lg:space-x-3">
+                        <select id="registerFilter" class="px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                            <option value="all">Semua Kasir/Register</option>
+                            @foreach($registers as $register)
+                                <option value="{{ $register->id }}">{{ $register->name }}</option>
+                            @endforeach
+                        </select>
                         <div class="relative flex-1 lg:flex-none">
                             <svg class="w-4 h-4 lg:w-5 lg:h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>

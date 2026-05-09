@@ -7,8 +7,24 @@
     <div id="posConfig" class="hidden" data-route-products="{{ route('kasir.products') }}"
         data-route-checkout="{{ route('kasir.checkout') }}" data-route-hold="{{ route('kasir.hold') }}"
         data-route-drafts="{{ route('kasir.drafts') }}" data-csrf-token="{{ csrf_token() }}"
-        data-tables='@json($tables)' data-modifiers='@json($modifiers)' data-product-modifiers='@json($productModifiers)'>
+        data-route-register-status="{{ route('kasir.registers.status') }}"
+        data-tables='@json($tables)' data-modifiers='@json($modifiers)' data-product-modifiers='@json($productModifiers)'
+        data-registers='@json($registers)' data-active-register-session='@json($activeRegisterSession)'>
     </div>
+
+    {{-- <div class="fixed top-3 right-5 z-30 bg-white border border-gray-200 rounded-xl px-4 py-2 shadow-sm flex items-center gap-3">
+        <div id="activeRegisterInfo" class="text-sm text-gray-700">
+            @if($activeRegisterSession)
+                Session: <span class="font-semibold text-orange-600">{{ $activeRegisterSession->register->name }}</span>
+            @else
+                <span class="text-red-500 font-medium">Belum ada session kasir aktif</span>
+            @endif
+        </div>
+        <button onclick="showRegisterPicker()" class="text-xs px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50">Masuk Session</button>
+        @if($activeRegisterSession)
+            <button onclick='showCloseRegisterFromPos({{ $activeRegisterSession->id }}, @json($activeRegisterSession->register->name))' class="text-xs px-3 py-1.5 bg-gray-700 text-white rounded-lg hover:bg-gray-800">Close Register</button>
+        @endif
+    </div> --}}
 
     <!-- Cart Section -->
     <div id="cartSidebar" class="cart-sidebar cart-open bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
@@ -437,6 +453,56 @@
                     </svg>
                     <p class="text-sm">Belum ada draft</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="registerPickerModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-900">Pilih Kasir</h2>
+                <button onclick="hideRegisterPicker()" class="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div id="registerPickerList" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <div id="openRegisterModalPos" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
+            <h2 class="text-xl font-bold text-gray-900">Open Register</h2>
+            <p id="openRegisterNamePos" class="text-sm text-gray-600">Kasir: -</p>
+            <input type="hidden" id="openRegisterIdPos" />
+            <div>
+                <label class="text-sm text-gray-700">Uang Modal Awal</label>
+                <input id="openingCashInputPos" type="number" min="0" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl">
+            </div>
+            <div>
+                <label class="text-sm text-gray-700">Catatan</label>
+                <textarea id="openingNoteInputPos" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl"></textarea>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="hideOpenRegisterPos()" class="px-4 py-2 border border-gray-300 rounded-xl">Batal</button>
+                <button onclick="submitOpenRegisterPos()" class="px-4 py-2 bg-orange-500 text-white rounded-xl">Open Register</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="closeRegisterModalPos" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
+            <h2 class="text-xl font-bold text-gray-900">Close Register</h2>
+            <p id="closeRegisterNamePos" class="text-sm text-gray-600">Kasir: -</p>
+            <input type="hidden" id="closeSessionIdPos" />
+            <div>
+                <label class="text-sm text-gray-700">Total Uang Akhir</label>
+                <input id="closingCashInputPos" type="number" min="0" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl">
+            </div>
+            <div>
+                <label class="text-sm text-gray-700">Catatan</label>
+                <textarea id="closingNoteInputPos" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl"></textarea>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="hideCloseRegisterFromPos()" class="px-4 py-2 border border-gray-300 rounded-xl">Batal</button>
+                <button onclick="submitCloseRegisterFromPos()" class="px-4 py-2 bg-gray-700 text-white rounded-xl">Close Register</button>
             </div>
         </div>
     </div>

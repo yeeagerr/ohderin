@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Kasir;
 
 use App\Http\Controllers\Controller;
+use App\Models\Register;
 use App\Models\Sale;
 use Illuminate\Http\Request;
 
@@ -13,7 +14,8 @@ class OrderController extends Controller
      */
     public function index()
     {
-        return view('kasir.orders');
+        $registers = Register::orderBy('name')->get();
+        return view('kasir.orders', compact('registers'));
     }
 
     /**
@@ -21,7 +23,7 @@ class OrderController extends Controller
      */
     public function getOrders(Request $request)
     {
-        $query = Sale::with(['items.product', 'cashier', 'table']);
+        $query = Sale::with(['items.product', 'cashier', 'table', 'register']);
 
         // Filter by status
         if ($request->filled('status') && $request->status !== 'all') {
@@ -31,6 +33,10 @@ class OrderController extends Controller
         // Search by order number
         if ($request->filled('search')) {
             $query->where('order_number', 'like', '%' . $request->search . '%');
+        }
+
+        if ($request->filled('register_id') && $request->register_id !== 'all') {
+            $query->where('register_id', $request->register_id);
         }
 
         $orders = $query->orderBy('created_at', 'desc')->paginate(10);
@@ -47,6 +53,7 @@ class OrderController extends Controller
                 'split_bill_group' => $sale->split_bill_group,
                 'items_count' => $sale->items->count(),
                 'cashier_name' => $sale->cashier->name ?? 'Unknown',
+                'register_name' => $sale->register->name ?? '-',
                 'created_at' => $sale->created_at->format('d M Y'),
                 'created_time' => $sale->created_at->format('H:i'),
             ];
@@ -78,7 +85,7 @@ class OrderController extends Controller
      */
     public function getOrderDetail($id)
     {
-        $sale = Sale::with(['items.product.modifiers', 'items.modifiers.modifier', 'cashier'])->findOrFail($id);
+        $sale = Sale::with(['items.product.modifiers', 'items.modifiers.modifier', 'cashier', 'register', 'table'])->findOrFail($id);
 
         return response()->json([
             'id' => $sale->id,
@@ -90,6 +97,7 @@ class OrderController extends Controller
             'table_name' => $sale->table->name ?? null,
             'split_bill_group' => $sale->split_bill_group,
             'cashier_name' => $sale->cashier->name ?? 'Unknown',
+            'register_name' => $sale->register->name ?? '-',
             'created_at' => $sale->created_at->format('d M Y'),
             'created_time' => $sale->created_at->format('H:i'),
             'items' => $sale->items->map(function ($item) {

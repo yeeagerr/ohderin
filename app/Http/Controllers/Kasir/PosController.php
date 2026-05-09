@@ -5,17 +5,33 @@ namespace App\Http\Controllers\Kasir;
 use App\Http\Controllers\Controller;
 use App\Models\Modifier;
 use App\Models\Product;
+use App\Models\Register;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleItemModifier;
 use App\Models\Table;
+use App\Http\Controllers\Kasir\RegisterController;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class PosController extends Controller
 {
+    private function getActiveRegisterSessionOrFail()
+    {
+        $activeSession = RegisterController::getActiveSession();
+
+        if (!$activeSession) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'Pilih kasir dan buka register terlebih dahulu.',
+            ], 422));
+        }
+
+        return $activeSession;
+    }
     /**
      * Apply shared visibility rules for products shown in POS.
      *
@@ -148,8 +164,18 @@ class PosController extends Controller
     /**
      * Display POS page with initial products and categories
      */
-    public function index()
+    public function index(Request $request)
     {
+        if ($request->filled('pos_id')) {
+            $register = Register::find($request->input('pos_id'));
+            if ($register) {
+                $openSession = $register->sessions()->where('status', 'open')->latest()->first();
+                if ($openSession) {
+                    session(['active_register_session_id' => $openSession->id]);
+                }
+            }
+        }
+
         $products = Product::with([
             'category',
             'modifiers' => function ($query) {
@@ -183,7 +209,10 @@ class PosController extends Controller
                 return [$product->id => $product->modifiers->values()];
             });
 
-        return view('kasir.pos', compact('products', 'categories', 'tables', 'modifiers', 'productModifiers'));
+        $registers = Register::with('activeSession')->orderBy('name')->get();
+        $activeRegisterSession = RegisterController::getActiveSession();
+
+        return view('kasir.pos', compact('products', 'categories', 'tables', 'modifiers', 'productModifiers', 'registers', 'activeRegisterSession'));
     }
 
     /**
@@ -223,8 +252,19 @@ class PosController extends Controller
 
     public function getDrafts()
     {
+        $activeSession = RegisterController::getActiveSession();
+        if (!$activeSession) {
+            return response()->json([
+                'drafts' => [],
+                'hasMore' => false,
+                'currentPage' => 1,
+                'lastPage' => 1,
+            ]);
+        }
+
         $draftsPaginated = Sale::with(['items.product', 'table'])
             ->where('status', 'draft')
+            ->where('register_session_id', $activeSession->id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
@@ -252,7 +292,11 @@ class PosController extends Controller
 
     public function resumeDraft($id)
     {
-        $draft = Sale::where('id', $id)->where('status', 'draft')->first();
+        $activeSession = $this->getActiveRegisterSessionOrFail();
+        $draft = Sale::where('id', $id)
+            ->where('status', 'draft')
+            ->where('register_session_id', $activeSession->id)
+            ->first();
 
         if (!$draft) {
             return response()->json([
@@ -301,7 +345,11 @@ class PosController extends Controller
 
     public function deleteDraft($id)
     {
-        $draft = Sale::where('id', $id)->where('status', 'draft')->first();
+        $activeSession = $this->getActiveRegisterSessionOrFail();
+        $draft = Sale::where('id', $id)
+            ->where('status', 'draft')
+            ->where('register_session_id', $activeSession->id)
+            ->first();
 
         if (!$draft) {
             return response()->json([
@@ -336,6 +384,7 @@ class PosController extends Controller
 
     public function holdOrder(Request $request)
     {
+        $activeSession = $this->getActiveRegisterSessionOrFail();
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -361,7 +410,9 @@ class PosController extends Controller
 
             if ($draftId) {
                 // Update existing draft
-                $sale = Sale::findOrFail($draftId);
+                $sale = Sale::where('id', $draftId)
+                    ->where('register_session_id', $activeSession->id)
+                    ->firstOrFail();
 
                 // Update sale details (keep as draft)
                 $sale->update([
@@ -370,6 +421,8 @@ class PosController extends Controller
                     'payment_method' => $this->normalizePaymentMethod($request->payment_method),
                     'table_id' => $request->table_id,
                     'split_bill_group' => $request->split_bill_group,
+                    'register_id' => $activeSession->register_id,
+                    'register_session_id' => $activeSession->id,
                 ]);
 
                 // Delete old sale items
@@ -388,6 +441,8 @@ class PosController extends Controller
                     'table_id' => $request->table_id,
                     'split_bill_group' => $request->split_bill_group,
                     'user_id' => Auth::user()->id ?? 1,
+                    'register_id' => $activeSession->register_id,
+                    'register_session_id' => $activeSession->id,
                     'status' => 'draft',
                 ]);
             }
@@ -417,6 +472,7 @@ class PosController extends Controller
      */
     public function store(Request $request)
     {
+        $activeSession = $this->getActiveRegisterSessionOrFail();
         $request->validate([
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -443,7 +499,9 @@ class PosController extends Controller
 
             if ($draftId) {
                 // Update existing draft to completed
-                $sale = Sale::findOrFail($draftId);
+                $sale = Sale::where('id', $draftId)
+                    ->where('register_session_id', $activeSession->id)
+                    ->firstOrFail();
 
                 $sale->update([
                     'order_type' => $request->order_type,
@@ -453,6 +511,8 @@ class PosController extends Controller
                     'payment_method' => $request->payment_method,
                     'table_id' => $request->table_id,
                     'split_bill_group' => $request->split_bill_group,
+                    'register_id' => $activeSession->register_id,
+                    'register_session_id' => $activeSession->id,
                     'status' => "completed",
                 ]);
 
@@ -470,6 +530,8 @@ class PosController extends Controller
                     'table_id' => $request->table_id,
                     'split_bill_group' => $request->split_bill_group,
                     'user_id' => Auth::user()->id ?? 1,
+                    'register_id' => $activeSession->register_id,
+                    'register_session_id' => $activeSession->id,
                     'status' => "completed",
                 ]);
             }

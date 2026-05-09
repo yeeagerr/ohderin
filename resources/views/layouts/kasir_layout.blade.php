@@ -75,7 +75,7 @@
                 </svg>
                 <span class="text-[10px]">Orders</span>
             </a>
-            
+
             <div class="w-10 h-px bg-indigo-400/50 my-2"></div>
 
             <!-- Group 2: Master Data -->
