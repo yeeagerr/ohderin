@@ -52,6 +52,11 @@ class User extends Authenticatable
         return $this->belongsTo(Role::class);
     }
 
+    public function hasPermissionTo($permission)
+    {
+        return $this->role ? $this->role->hasPermissionTo($permission) : false;
+    }
+
 // public function sales()
 // {
 //     return $this->hasMany(Sale::class);

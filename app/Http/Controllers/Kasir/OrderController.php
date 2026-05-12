@@ -64,6 +64,7 @@ class OrderController extends Controller
             'all' => Sale::count(),
             'completed' => Sale::completed()->count(),
             'draft' => Sale::draft()->count(),
+            'refunded' => Sale::where('status', 'refunded')->count(),
         ];
 
         return response()->json([
@@ -100,6 +101,9 @@ class OrderController extends Controller
             'register_name' => $sale->register->name ?? '-',
             'created_at' => $sale->created_at->format('d M Y'),
             'created_time' => $sale->created_at->format('H:i'),
+            'refund_amount' => $sale->refund_amount,
+            'refund_reason' => $sale->refund_reason,
+            'refunded_at' => $sale->refunded_at ? $sale->refunded_at->format('d M Y H:i') : null,
             'items' => $sale->items->map(function ($item) {
                 $modifierAdjustment = $item->modifiers->sum(function ($modifier) {
                     return (float) ($modifier->modifier->price_adjustment ?? 0) * (int) ($modifier->quantity ?? 1);
@@ -125,6 +129,63 @@ class OrderController extends Controller
                     }),
                 ];
             }),
+        ]);
+    }
+
+    /**
+     * AJAX: Process refund for a completed order
+     */
+    public function refund(Request $request, $id)
+    {
+        $sale = Sale::findOrFail($id);
+
+        // Validate only completed orders can be refunded
+        if ($sale->status !== 'completed') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya completed orders yang bisa di-refund'
+            ], 422);
+        }
+
+        // Validate refund amount
+        $refundAmount = (float) $request->input('refund_amount');
+        if ($refundAmount <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Refund amount harus lebih besar dari 0'
+            ], 422);
+        }
+
+        if ($refundAmount > (float) $sale->total) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Refund amount tidak boleh lebih besar dari total order'
+            ], 422);
+        }
+
+        // Validate reason is provided
+        $reason = trim($request->input('refund_reason', ''));
+        if (empty($reason)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Alasan refund wajib diisi'
+            ], 422);
+        }
+
+        // Update sale with refund data and change status to refunded
+        $sale->update([
+            'status' => 'refunded',
+            'refund_amount' => $refundAmount,
+            'refund_reason' => $reason,
+            'refunded_at' => now(),
+            'refunded_by' => auth()->id(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Refund berhasil diproses',
+            'refund_amount' => $refundAmount,
+            'refunded_at' => $sale->refunded_at->format('d M Y H:i'),
         ]);
     }
 }

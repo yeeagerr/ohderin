@@ -12,6 +12,10 @@ class Sale extends Model
         'total',
         'paid_amount',
         'change_amount',
+        'refund_amount',
+        'refund_reason',
+        'refunded_at',
+        'refunded_by',
         'payment_method',
         'user_id',
         'register_id',
@@ -19,6 +23,10 @@ class Sale extends Model
         'status',
         'table_id',
         'split_bill_group'
+    ];
+
+    protected $casts = [
+        'refunded_at' => 'datetime',
     ];
 
     public function items()
@@ -44,6 +52,11 @@ class Sale extends Model
     public function registerSession()
     {
         return $this->belongsTo(RegisterSession::class, 'register_session_id');
+    }
+
+    public function refundedBy()
+    {
+        return $this->belongsTo(User::class, 'refunded_by');
     }
 
     public function scopeDraft($query)

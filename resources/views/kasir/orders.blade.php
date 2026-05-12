@@ -88,6 +88,37 @@
                 </div>
             </div>
         </div>
+
+        <!-- Refund Modal -->
+        <div id="refundModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50">
+            <div class="bg-white rounded-2xl shadow-xl p-6 w-96 max-w-[90vw]">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Proses Refund</h2>
+                
+                <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-gray-600 mb-1">Total Order</p>
+                    <p id="refundModalOrderTotal" class="text-2xl font-bold text-orange-600">Rp 0</p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah Refund *</label>
+                    <input type="number" id="refundAmount" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="Rp 0" step="1000" min="0">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Alasan Refund *</label>
+                    <textarea id="refundReason" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" placeholder="Contoh: Produk rusak, pesanan salah, dll" rows="4"></textarea>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="closeRefundModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium">
+                        Batal
+                    </button>
+                    <button onclick="submitRefund()" class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium">
+                        Proses Refund
+                    </button>
+                </div>
+            </div>
+        </div>
 @endsection
 
 @section('scripts')

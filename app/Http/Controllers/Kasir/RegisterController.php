@@ -16,11 +16,33 @@ class RegisterController extends Controller
     {
         $registers = Register::with(['activeSession'])->orderBy('name')->get();
         $activeSession = $this->getActiveSession();
-        $sessionLogs = RegisterSession::with('register')
-            ->latest('opened_at')
-            ->paginate(15);
 
-        return view('dashboard.registers', compact('registers', 'activeSession', 'sessionLogs'));
+        return view('dashboard.registers', compact('registers', 'activeSession'));
+    }
+
+    public function history(Request $request)
+    {
+        $registers = Register::orderBy('name')->get();
+
+        $sessionLogs = RegisterSession::with(['register', 'openedBy', 'closedBy'])
+            ->when($request->filled('register_id'), fn ($query) => $query->where('register_id', $request->register_id))
+            ->when($request->filled('status') && $request->status !== 'all', fn ($query) => $query->where('status', $request->status))
+            ->latest('opened_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        $summaryQuery = RegisterSession::query()
+            ->when($request->filled('register_id'), fn ($query) => $query->where('register_id', $request->register_id))
+            ->when($request->filled('status') && $request->status !== 'all', fn ($query) => $query->where('status', $request->status));
+
+        $summary = [
+            'total_sessions' => (clone $summaryQuery)->count(),
+            'open_sessions' => (clone $summaryQuery)->where('status', 'open')->count(),
+            'closed_sessions' => (clone $summaryQuery)->where('status', 'closed')->count(),
+            'total_sales' => (float) (clone $summaryQuery)->sum('total_sales'),
+        ];
+
+        return view('dashboard.register_session_history', compact('registers', 'sessionLogs', 'summary'));
     }
 
     public function store(Request $request)
@@ -137,9 +159,14 @@ class RegisterController extends Controller
             $salesQuery = Sale::where('register_session_id', $registerSession->id)
                 ->where('status', 'completed');
 
-            $totalTransactions = $salesQuery->count();
-            $totalSales = (float) $salesQuery->sum('total');
-            $expectedCash = (float) $registerSession->opening_cash + $totalSales;
+            $totalTransactions = (clone $salesQuery)->count();
+            $totalSales = (float) (clone $salesQuery)->sum('total');
+            $cashSales = (float) (clone $salesQuery)->where('payment_method', 'cash')->sum('total');
+            $nonCashSales = $totalSales - $cashSales;
+            $draftTransactions = Sale::where('register_session_id', $registerSession->id)
+                ->where('status', 'draft')
+                ->count();
+            $expectedCash = (float) $registerSession->opening_cash + $cashSales;
             $closingCash = (float) $data['closing_cash'];
             $cashDifference = $closingCash - $expectedCash;
 
@@ -153,7 +180,10 @@ class RegisterController extends Controller
                 'status' => 'closed',
                 'session_summary' => [
                     'opening_cash' => (float) $registerSession->opening_cash,
+                    'cash_sales' => $cashSales,
+                    'non_cash_sales' => $nonCashSales,
                     'expected_cash' => $expectedCash,
+                    'draft_transactions' => $draftTransactions,
                     'closing_note' => $data['closing_note'] ?? null,
                 ],
             ]);
@@ -171,7 +201,23 @@ class RegisterController extends Controller
                 'total_transactions' => $registerSession->fresh()->total_transactions,
                 'total_sales' => $registerSession->fresh()->total_sales,
                 'cash_difference' => $registerSession->fresh()->cash_difference,
+                'expected_cash' => $registerSession->fresh()->session_summary['expected_cash'] ?? null,
             ],
+        ]);
+    }
+
+    public function summary(RegisterSession $registerSession)
+    {
+        if ($registerSession->status !== 'open') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session register sudah ditutup.',
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'summary' => $this->buildOpenSessionSummary($registerSession),
         ]);
     }
 
@@ -201,5 +247,32 @@ class RegisterController extends Controller
             ->where('id', $sessionId)
             ->where('status', 'open')
             ->first();
+    }
+
+    private function buildOpenSessionSummary(RegisterSession $registerSession): array
+    {
+        $salesQuery = Sale::where('register_session_id', $registerSession->id)
+            ->where('status', 'completed');
+
+        $totalTransactions = (clone $salesQuery)->count();
+        $totalSales = (float) (clone $salesQuery)->sum('total');
+        $cashSales = (float) (clone $salesQuery)->where('payment_method', 'cash')->sum('total');
+        $nonCashSales = $totalSales - $cashSales;
+        $draftTransactions = Sale::where('register_session_id', $registerSession->id)
+            ->where('status', 'draft')
+            ->count();
+        $openingCash = (float) $registerSession->opening_cash;
+
+        return [
+            'register_name' => $registerSession->register->name ?? '-',
+            'opened_at' => optional($registerSession->opened_at)->format('d M Y H:i'),
+            'opening_cash' => $openingCash,
+            'total_transactions' => $totalTransactions,
+            'draft_transactions' => $draftTransactions,
+            'total_sales' => $totalSales,
+            'cash_sales' => $cashSales,
+            'non_cash_sales' => $nonCashSales,
+            'expected_cash' => $openingCash + $cashSales,
+        ];
     }
 }

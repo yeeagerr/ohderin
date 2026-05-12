@@ -26,6 +26,12 @@ function getStatusBadge(status) {
             dot: "bg-orange-500",
             label: "Draft",
         },
+        refunded: {
+            bg: "bg-red-100",
+            text: "text-red-700",
+            dot: "bg-red-500",
+            label: "Refunded",
+        },
     };
     return styles[status] || styles.completed;
 }
@@ -288,6 +294,12 @@ function renderStatusTabs(counts) {
             count: counts.draft,
             dot: "bg-orange-500",
         },
+        {
+            status: "refunded",
+            label: "Refunded",
+            count: counts.refunded || 0,
+            dot: "bg-red-500",
+        },
     ];
 
     const container = document.getElementById("statusTabs");
@@ -487,7 +499,7 @@ function renderOrderDetail(order) {
                 </button>
             `
             : `
-                <div class="grid grid-cols-2 gap-2">
+                <div class="grid grid-cols-2 gap-2 mb-2">
                     <button onclick="printOrder()" class="px-3 lg:px-4 py-2 lg:py-2.5 border border-gray-300 rounded-xl text-xs lg:text-sm font-medium hover:bg-gray-50 transition flex items-center justify-center">
                         <svg class="w-3.5 h-3.5 lg:w-4 lg:h-4 mr-1.5 lg:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
@@ -501,6 +513,20 @@ function renderOrderDetail(order) {
                         Email
                     </button>
                 </div>
+                ${order.status === 'refunded' ? `
+                    <div class="px-3 lg:px-4 py-2.5 lg:py-3 bg-red-50 border border-red-200 rounded-xl">
+                        <p class="text-xs lg:text-sm text-red-700 font-medium">✓ Refunded ${order.refunded_at ? 'on ' + order.refunded_at : ''}</p>
+                        ${order.refund_reason ? `<p class="text-xs text-red-600 mt-1">Reason: ${order.refund_reason}</p>` : ''}
+                        ${order.refund_amount ? `<p class="text-xs text-red-600 mt-1">Amount: ${ordersFormatCurrency(order.refund_amount)}</p>` : ''}
+                    </div>
+                ` : `
+                    <button onclick="openRefundModal()" class="w-full px-3 lg:px-4 py-2 lg:py-2.5 bg-red-500 text-white rounded-xl text-xs lg:text-sm font-medium hover:bg-red-600 transition flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 lg:w-4 lg:h-4 mr-1.5 lg:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15L3 9m0 0l6-6m-6 6h18a9 9 0 010 18H9a9 9 0 010-18z"/>
+                        </svg>
+                        Refund Order
+                    </button>
+                `}
             `
         }
         </div>
@@ -699,6 +725,85 @@ function deleteDraftOrder() {
         .catch(() => {
             alert("Gagal menghapus draft");
         });
+}
+
+// =============================================
+// REFUND MODAL
+// =============================================
+
+function openRefundModal() {
+    if (!currentOrderDetail) return;
+    
+    const modal = document.getElementById('refundModal');
+    document.getElementById('refundModalOrderTotal').textContent = ordersFormatCurrency(parseFloat(currentOrderDetail.total));
+    document.getElementById('refundAmount').value = '';
+    document.getElementById('refundReason').value = '';
+    modal.classList.remove('hidden');
+}
+
+function closeRefundModal() {
+    const modal = document.getElementById('refundModal');
+    modal.classList.add('hidden');
+}
+
+function submitRefund() {
+    if (!currentOrderDetail) return;
+    
+    const refundAmount = parseFloat(document.getElementById('refundAmount').value);
+    const refundReason = document.getElementById('refundReason').value.trim();
+    
+    // Validate
+    if (!refundAmount || refundAmount <= 0) {
+        alert('Jumlah refund harus lebih besar dari 0');
+        return;
+    }
+    
+    if (refundAmount > parseFloat(currentOrderDetail.total)) {
+        alert('Refund amount tidak boleh lebih besar dari total order');
+        return;
+    }
+    
+    if (!refundReason) {
+        alert('Alasan refund wajib diisi');
+        return;
+    }
+    
+    // Submit refund
+    const submitButton = event.target;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Processing...';
+    
+    fetch(`/kasir/orders/${currentOrderDetail.id}/refund`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': ordersCSRFToken,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            refund_amount: refundAmount,
+            refund_reason: refundReason,
+        }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            alert('Refund berhasil diproses!');
+            closeRefundModal();
+            // Reload the order detail
+            showOrderDetail(currentOrderDetail.id);
+            loadOrders(false); // Reload list
+        } else {
+            alert(data.message || 'Gagal memproses refund');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert('Gagal memproses refund');
+    })
+    .finally(() => {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Proses Refund';
+    });
 }
 
 // INIT

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('paid_amount', 14, 2)->nullable();
             $table->decimal('change_amount', 14, 2)->nullable();
             $table->enum('payment_method', ['cash', 'qris', 'debit', 'credit']);
+            $table->enum('status', ['completed', 'draft', 'refunded'])->change();
             $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
             $table->timestamps();
         });

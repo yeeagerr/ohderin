@@ -6,104 +6,122 @@
     <main class="flex-1 overflow-y-auto p-4 sm:p-6">
       <h1 class="text-2xl sm:text-3xl font-black text-gray-800 mb-5 tracking-tight">DASHBOARD</h1>
 
-      <!-- STAT CARDS — 4 equal columns -->
+      @php
+        $trendClass = function ($value) {
+          if ($value > 0) return 'text-green-600 bg-green-50';
+          if ($value < 0) return 'text-red-600 bg-red-50';
+          return 'text-gray-500 bg-gray-100';
+        };
+
+        $trendPrefix = function ($value) {
+          if ($value > 0) return '+';
+          if ($value < 0) return '-';
+          return '';
+        };
+      @endphp
+
+      <!-- STAT CARDS - 4 equal columns -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <!-- Pendapatan Hari Ini -->
-        <div class="card p-4 flex flex-col justify-between" style="min-height:120px">
+        <div class="card p-4 flex flex-col justify-between overflow-hidden" style="min-height:120px">
           <div class="flex items-start justify-between gap-1">
             <div>
               <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pendapatan</p>
               <p class="text-[11px] text-gray-400">Hari Ini</p>
             </div>
-            @if($revenueChange >= 0)
-              <span class="text-[10px] font-bold text-green-500 bg-green-50 px-1.5 py-0.5 rounded-full">↗ {{ $revenueChange }}%</span>
-            @else
-              <span class="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">↘ {{ abs($revenueChange) }}%</span>
-            @endif
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap {{ $trendClass($revenueChange) }}">
+              {{ $trendPrefix($revenueChange) }}{{ number_format(abs($revenueChange), 1, ',', '.') }}%
+            </span>
           </div>
           <div>
-            @if($revenueChange >= 0)
-              <svg viewBox="0 0 100 32" class="w-full mb-1"><polyline points="0,28 25,20 50,14 75,8 100,2" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            @if($revenueChange > 0)
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,28 25,20 50,14 75,8 100,2" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            @elseif($revenueChange < 0)
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,2 25,10 50,18 75,24 100,30" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             @else
-              <svg viewBox="0 0 100 32" class="w-full mb-1"><polyline points="0,2 25,10 50,18 75,24 100,30" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,16 25,16 50,16 75,16 100,16" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             @endif
-            <p class="text-xl font-black text-gray-800">Rp {{ number_format($todayRevenue, 0, ',', '.') }}</p>
+            <p class="text-lg sm:text-xl font-black text-gray-800 truncate">Rp {{ number_format($todayRevenue, 0, ',', '.') }}</p>
           </div>
         </div>
 
         <!-- Transaksi Hari Ini -->
-        <div class="card p-4 flex flex-col justify-between" style="min-height:120px">
+        <div class="card p-4 flex flex-col justify-between overflow-hidden" style="min-height:120px">
           <div class="flex items-start justify-between gap-1">
             <div>
               <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Transaksi</p>
               <p class="text-[11px] text-gray-400">Hari Ini</p>
             </div>
-            @if($transactionChange >= 0)
-              <span class="text-[10px] font-bold text-green-500 bg-green-50 px-1.5 py-0.5 rounded-full">↗ {{ $transactionChange }}%</span>
-            @else
-              <span class="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">↘ {{ abs($transactionChange) }}%</span>
-            @endif
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap {{ $trendClass($transactionChange) }}">
+              {{ $trendPrefix($transactionChange) }}{{ number_format(abs($transactionChange), 1, ',', '.') }}%
+            </span>
           </div>
           <div>
-            @if($transactionChange >= 0)
-              <svg viewBox="0 0 100 32" class="w-full mb-1"><polyline points="0,26 25,16 45,24 70,10 100,6" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            @if($transactionChange > 0)
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,26 25,16 45,24 70,10 100,6" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            @elseif($transactionChange < 0)
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,12 30,16 50,10 75,22 100,28" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             @else
-              <svg viewBox="0 0 100 32" class="w-full mb-1"><polyline points="0,12 30,16 50,10 75,22 100,28" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,16 25,16 50,16 75,16 100,16" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             @endif
-            <p class="text-xl font-black text-gray-800">{{ number_format($todayTransactions, 0, ',', '.') }}</p>
+            <p class="text-lg sm:text-xl font-black text-gray-800">{{ number_format($todayTransactions, 0, ',', '.') }}</p>
           </div>
         </div>
 
         <!-- Produk Terjual Hari Ini -->
-        <div class="card p-4 flex flex-col justify-between" style="min-height:120px">
+        <div class="card p-4 flex flex-col justify-between overflow-hidden" style="min-height:120px">
           <div class="flex items-start justify-between gap-1">
             <div>
               <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Produk Terjual</p>
               <p class="text-[11px] text-gray-400">Hari Ini</p>
             </div>
-            @if($itemsSoldChange >= 0)
-              <span class="text-[10px] font-bold text-green-500 bg-green-50 px-1.5 py-0.5 rounded-full">↗ {{ $itemsSoldChange }}%</span>
-            @else
-              <span class="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">↘ {{ abs($itemsSoldChange) }}%</span>
-            @endif
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap {{ $trendClass($itemsSoldChange) }}">
+              {{ $trendPrefix($itemsSoldChange) }}{{ number_format(abs($itemsSoldChange), 1, ',', '.') }}%
+            </span>
           </div>
           <div>
-            @if($itemsSoldChange >= 0)
-              <svg viewBox="0 0 100 32" class="w-full mb-1"><polyline points="0,28 25,20 50,14 75,8 100,2" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            @if($itemsSoldChange > 0)
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,28 25,20 50,14 75,8 100,2" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            @elseif($itemsSoldChange < 0)
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,2 25,10 50,18 75,24 100,30" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             @else
-              <svg viewBox="0 0 100 32" class="w-full mb-1"><polyline points="0,2 25,10 50,18 75,24 100,30" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,16 25,16 50,16 75,16 100,16" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             @endif
-            <p class="text-xl font-black text-gray-800">{{ number_format($todayItemsSold, 0, ',', '.') }}</p>
+            <p class="text-lg sm:text-xl font-black text-gray-800">{{ number_format($todayItemsSold, 0, ',', '.') }}</p>
           </div>
         </div>
 
-        <!-- Menu Aktif -->
-        <div class="card p-4 flex flex-col justify-between" style="min-height:120px">
+        <!-- Total Refund -->
+        <div class="card p-4 flex flex-col justify-between overflow-hidden" style="min-height:120px">
           <div class="flex items-start justify-between gap-1">
             <div>
-              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Menu Aktif</p>
+              <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Refund</p>
               <p class="text-[11px] text-gray-400">Total</p>
             </div>
-            <span class="text-[10px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full">📋 Aktif</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap {{ $totalRefund > 0 ? 'text-red-600 bg-red-50' : 'text-gray-500 bg-gray-100' }}">
+              {{ $totalRefund > 0 ? 'Refund' : 'Tidak Ada' }}
+            </span>
           </div>
           <div>
-            <svg viewBox="0 0 100 32" class="w-full mb-1"><polyline points="0,16 25,16 50,16 75,16 100,16" fill="none" stroke="#f97316" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <p class="text-xl font-black text-gray-800">{{ number_format($activeMenuCount, 0, ',', '.') }}</p>
+            @if($totalRefund > 0)
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,4 18,9 38,8 58,18 78,20 100,28" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            @else
+              <svg viewBox="0 0 100 32" class="w-full mb-1" aria-hidden="true"><polyline points="0,16 25,16 50,16 75,16 100,16" fill="none" stroke="#9ca3af" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            @endif
+            <p class="text-lg sm:text-xl font-black text-gray-800 truncate">Rp {{ number_format($totalRefund, 0, ',', '.') }}</p>
           </div>
         </div>
       </div>
 
-      <!-- MIDDLE ROW — 3 equal columns -->
+      <!-- MIDDLE ROW - 3 equal columns -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
         <!-- Ringkasan Bulan Ini -->
         <div class="card p-5 flex flex-col gap-4">
           <div class="flex items-center justify-between">
             <h2 class="text-base font-black text-gray-800">Ringkasan Bulan Ini</h2>
-            @if($monthRevenueChange >= 0)
-              <span class="text-[10px] font-bold text-green-500 bg-green-50 px-1.5 py-0.5 rounded-full">↗ {{ $monthRevenueChange }}%</span>
-            @else
-              <span class="text-[10px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full">↘ {{ abs($monthRevenueChange) }}%</span>
-            @endif
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap {{ $trendClass($monthRevenueChange) }}">
+              {{ $trendPrefix($monthRevenueChange) }}{{ number_format(abs($monthRevenueChange), 1, ',', '.') }}%
+            </span>
           </div>
           <div class="bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl p-4 text-white">
             <p class="text-xs opacity-75 mb-1">Total Pendapatan</p>
@@ -156,7 +174,7 @@
         </div>
       </div>
 
-      <!-- BOTTOM ROW — chart (2/3) + right cards (1/3) -->
+      <!-- BOTTOM ROW - chart (2/3) + right cards (1/3) -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="card p-5 lg:col-span-2 flex flex-col">
           <div class="flex items-center justify-between mb-4">
@@ -204,30 +222,41 @@
 @section('scripts')
 <script>
   const ctx = document.getElementById('revenueChart').getContext('2d');
+  const chartData = {!! json_encode($chartData) !!}.map(Number);
+  const hasRevenueData = chartData.some(value => value > 0);
+  const lastValue = chartData[chartData.length - 1] || 0;
+  const previousValue = chartData[chartData.length - 2] || 0;
+  const chartColor = !hasRevenueData ? '#9ca3af' : (lastValue >= previousValue ? '#22c55e' : '#ef4444');
+  const chartFill = !hasRevenueData
+    ? ['rgba(156,163,175,0.14)', 'rgba(156,163,175,0.02)']
+    : (lastValue >= previousValue
+      ? ['rgba(34,197,94,0.18)', 'rgba(34,197,94,0.01)']
+      : ['rgba(239,68,68,0.18)', 'rgba(239,68,68,0.01)']);
+
   new Chart(ctx, {
     type: 'line',
     data: {
       labels: {!! json_encode($chartLabels) !!},
       datasets: [{
         label: 'Pemasukan',
-        data: {!! json_encode($chartData) !!},
-        borderColor: '#f97316',
+        data: chartData,
+        borderColor: chartColor,
         backgroundColor: function(context) {
           const chart = context.chart;
           const {ctx: c, chartArea} = chart;
-          if (!chartArea) return 'rgba(249,115,22,0.1)';
+          if (!chartArea) return chartFill[0];
           const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-          gradient.addColorStop(0, 'rgba(249,115,22,0.18)');
-          gradient.addColorStop(1, 'rgba(249,115,22,0.01)');
+          gradient.addColorStop(0, chartFill[0]);
+          gradient.addColorStop(1, chartFill[1]);
           return gradient;
         },
         borderWidth: 2.5,
         pointBackgroundColor: '#fff',
-        pointBorderColor: '#f97316',
+        pointBorderColor: chartColor,
         pointBorderWidth: 2,
-        pointRadius: 5,
+        pointRadius: hasRevenueData ? 5 : 3,
         pointHoverRadius: 7,
-        pointHoverBackgroundColor: '#f97316',
+        pointHoverBackgroundColor: chartColor,
         fill: true,
         tension: 0.4,
       }]
@@ -242,11 +271,12 @@
           padding: 10,
           titleFont: { family: 'Nunito', size: 11, weight: '600' },
           bodyFont: { family: 'Nunito', size: 12, weight: '800' },
-          callbacks: { label: c => ' Rp ' + c.raw.toLocaleString('id-ID') }
+          callbacks: { label: c => ' Rp ' + Number(c.raw).toLocaleString('id-ID') }
         }
       },
       scales: {
         y: {
+          beginAtZero: true,
           grid: { color: 'rgba(0,0,0,0.04)', drawBorder: false },
           border: { display: false },
           ticks: {

@@ -9,9 +9,20 @@ use App\Http\Controllers\RawMaterialController;
 use App\Http\Controllers\RecipeController;
 use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\StockOpnameController;
+use App\Http\Controllers\Dashboard\SettingController;
+use App\Http\Controllers\Dashboard\UserController;
+use App\Http\Controllers\Dashboard\RoleController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/dashboard', [DashboardController::class, 'index']);
+Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
+
+// App Settings
+Route::get('/dashboard/settings', [SettingController::class, 'index'])->name('settings.index');
+Route::post('/dashboard/settings', [SettingController::class, 'update'])->name('settings.update');
+
+// Users & Roles
+Route::resource('/dashboard/users', UserController::class)->except(['show']);
+Route::resource('/dashboard/roles', RoleController::class)->except(['show']);
 
 Route::get('/dashboard/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::post('/dashboard/categories', [CategoryController::class, 'store'])->name('categories.store');

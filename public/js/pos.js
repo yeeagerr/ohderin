@@ -20,6 +20,7 @@ let routeRegisterStatus = "";
 let csrfToken = "";
 let registersList = [];
 let activeRegisterSession = null;
+let closeRegisterExpectedCash = 0;
 
 const CART_KEY = "pos_cart";
 const RESUME_KEY = "pos_resume_cart";
@@ -100,12 +101,28 @@ function hideOpenRegisterPos() {
     if (modal) modal.classList.add("hidden");
 }
 
+function setRegisterButtonLoading(buttonId, isLoading, loadingText, normalText) {
+    const button = document.getElementById(buttonId);
+    if (!button) return;
+    button.disabled = isLoading;
+    button.textContent = isLoading ? loadingText : normalText;
+    button.classList.toggle("opacity-70", isLoading);
+    button.classList.toggle("cursor-not-allowed", isLoading);
+}
+
 function submitOpenRegisterPos() {
     const registerId = document.getElementById("openRegisterIdPos").value;
     const openingCash = parseFloat(
         document.getElementById("openingCashInputPos").value || 0,
     );
     const openingNote = document.getElementById("openingNoteInputPos").value || "";
+    setRegisterButtonLoading(
+        "openRegisterSubmitBtnPos",
+        true,
+        "Membuka...",
+        "Buka Session",
+    );
+
     fetch(`/kasir/registers/${registerId}/open`, {
         method: "POST",
         headers: {
@@ -119,10 +136,26 @@ function submitOpenRegisterPos() {
     })
         .then((r) => r.json())
         .then((data) => {
-            if (!data.success) return alert(data.message || "Gagal open register");
-            window.location.reload();
+            if (!data.success) {
+                setRegisterButtonLoading(
+                    "openRegisterSubmitBtnPos",
+                    false,
+                    "Membuka...",
+                    "Buka Session",
+                );
+                return alert(data.message || "Gagal open register");
+            }
+            window.location.href = '/dashboard';
         })
-        .catch(() => alert("Gagal open register"));
+        .catch(() => {
+            setRegisterButtonLoading(
+                "openRegisterSubmitBtnPos",
+                false,
+                "Membuka...",
+                "Buka Session",
+            );
+            alert("Gagal open register");
+        });
 }
 
 function showCloseRegisterFromPos(sessionId, registerName) {
@@ -130,11 +163,72 @@ function showCloseRegisterFromPos(sessionId, registerName) {
     document.getElementById(
         "closeRegisterNamePos",
     ).textContent = `Kasir: ${registerName}`;
+    document.getElementById("closingCashInputPos").value = "";
+    document.getElementById("closingNoteInputPos").value = "";
+    setCloseRegisterSummaryLoading();
     document.getElementById("closeRegisterModalPos").classList.remove("hidden");
+
+    fetch(`/kasir/register-sessions/${sessionId}/summary`)
+        .then((r) => r.json())
+        .then((data) => {
+            if (!data.success) {
+                alert(data.message || "Gagal memuat ringkasan session");
+                return;
+            }
+
+            const summary = data.summary || {};
+            closeRegisterExpectedCash = Number(summary.expected_cash || 0);
+            document.getElementById("closeSummaryOpeningCashPos").textContent =
+                formatCurrency(summary.opening_cash || 0);
+            document.getElementById("closeSummaryCashSalesPos").textContent =
+                formatCurrency(summary.cash_sales || 0);
+            document.getElementById("closeSummaryNonCashSalesPos").textContent =
+                formatCurrency(summary.non_cash_sales || 0);
+            document.getElementById("closeSummaryExpectedCashPos").textContent =
+                formatCurrency(summary.expected_cash || 0);
+            document.getElementById("closingCashInputPos").value = Math.round(
+                closeRegisterExpectedCash,
+            );
+            updateCloseRegisterDifference();
+            
+        })
+        .catch(() => alert("Gagal memuat ringkasan session"));
 }
 
 function hideCloseRegisterFromPos() {
     document.getElementById("closeRegisterModalPos").classList.add("hidden");
+}
+
+function setCloseRegisterSummaryLoading() {
+    closeRegisterExpectedCash = 0;
+    [
+        "closeSummaryOpeningCashPos",
+        "closeSummaryCashSalesPos",
+        "closeSummaryNonCashSalesPos",
+        "closeSummaryExpectedCashPos",
+    ].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = "Memuat...";
+    });
+    const difference = document.getElementById("closeRegisterDifferencePos");
+    if (difference) {
+        difference.textContent = "Selisih akan dihitung otomatis.";
+        difference.className = "text-xs text-gray-500 mt-1";
+    }
+}
+
+function updateCloseRegisterDifference() {
+    const input = document.getElementById("closingCashInputPos");
+    const label = document.getElementById("closeRegisterDifferencePos");
+    if (!input || !label) return;
+
+    const closingCash = parseFloat(input.value || 0);
+    const difference = closingCash - closeRegisterExpectedCash;
+    const isOver = difference > 0;
+    const isShort = difference < 0;
+
+    label.textContent = `Selisih: ${formatCurrency(Math.abs(difference))}${isOver ? " lebih" : isShort ? " kurang" : ""}`;
+    label.className = `text-xs mt-1 ${isOver ? "text-green-600" : isShort ? "text-red-600" : "text-gray-500"}`;
 }
 
 function submitCloseRegisterFromPos() {
@@ -143,6 +237,21 @@ function submitCloseRegisterFromPos() {
         document.getElementById("closingCashInputPos").value || 0,
     );
     const closingNote = document.getElementById("closingNoteInputPos").value || "";
+    const difference = closingCash - closeRegisterExpectedCash;
+    const confirmMessage =
+        difference === 0
+            ? "Tutup session kasir ini?"
+            : `Tutup session dengan selisih ${formatCurrency(Math.abs(difference))}${difference > 0 ? " lebih" : " kurang"}?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    setRegisterButtonLoading(
+        "closeRegisterSubmitBtnPos",
+        true,
+        "Menutup...",
+        "Tutup Session",
+    );
+
     fetch(`/kasir/register-sessions/${sessionId}/close`, {
         method: "POST",
         headers: {
@@ -156,11 +265,27 @@ function submitCloseRegisterFromPos() {
     })
         .then((r) => r.json())
         .then((data) => {
-            if (!data.success) return alert(data.message || "Gagal close register");
-            alert("Register berhasil ditutup");
-            window.location.reload();
+            if (!data.success) {
+                setRegisterButtonLoading(
+                    "closeRegisterSubmitBtnPos",
+                    false,
+                    "Menutup...",
+                    "Tutup Session",
+                );
+                return alert(data.message || "Gagal close register");
+            }
+            showToast("Register berhasil ditutup");
+            window.location.href = '/dashboard';
         })
-        .catch(() => alert("Gagal close register"));
+        .catch(() => {
+            setRegisterButtonLoading(
+                "closeRegisterSubmitBtnPos",
+                false,
+                "Menutup...",
+                "Tutup Session",
+            );
+            alert("Gagal close register");
+        });
 }
 
 function saveCart() {

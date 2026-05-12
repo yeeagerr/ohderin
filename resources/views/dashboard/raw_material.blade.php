@@ -47,7 +47,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500">Total Bahan</p>
-                    <p class="text-2xl font-bold text-gray-800 mt-1">{{ $rawMaterials->total() }}</p>
+                    <p class="text-2xl font-bold text-gray-800 mt-1">{{ number_format($stats['total_materials'], 0, ',', '.') }}</p>
                 </div>
                 <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -60,7 +60,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500">Total Nilai</p>
-                    <p class="text-2xl font-bold text-blue-600 mt-1">Rp {{ number_format(App\Models\RawMaterial::sum('cost'), 0, ',', '.') }}</p>
+                    <p class="text-2xl font-bold text-blue-600 mt-1">Rp {{ number_format($stats['total_cost'], 0, ',', '.') }}</p>
                 </div>
                 <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -73,7 +73,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500">Jenis Satuan</p>
-                    <p class="text-2xl font-bold text-purple-600 mt-1">{{ App\Models\RawMaterial::distinct('unit')->count('unit') }}</p>
+                    <p class="text-2xl font-bold text-purple-600 mt-1">{{ number_format($stats['unit_count'], 0, ',', '.') }}</p>
                 </div>
                 <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -86,7 +86,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500">Rata-rata Biaya</p>
-                    <p class="text-2xl font-bold text-green-600 mt-1">Rp {{ number_format(App\Models\RawMaterial::avg('cost'), 0, ',', '.') }}</p>
+                    <p class="text-2xl font-bold text-green-600 mt-1">Rp {{ number_format($stats['average_cost'], 0, ',', '.') }}</p>
                 </div>
                 <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
                     <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -100,14 +100,19 @@
     <!-- Filter & Search -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
         <div class="p-4">
-            <form method="GET" class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-                <div class="relative w-full lg:w-80">
+            <form method="GET" action="{{ route('raw-materials.index') }}" class="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                <div class="flex w-full lg:w-[28rem] gap-2">
+                    <div class="relative flex-1">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <circle cx="11" cy="11" r="8"/>
                         <path d="M21 21l-4.35-4.35"/>
                     </svg>
-                    <input type="text" id="searchInput" placeholder="Cari bahan baku..." 
-                           class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"/>
+                        <input type="text" id="searchInput" name="search" value="{{ request('search') }}" placeholder="Cari nama, satuan, atau ID..." 
+                            class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"/>
+                    </div>
+                    <button type="submit" class="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold transition">
+                        Cari
+                    </button>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
                     <select name="unit" onchange="this.form.submit()" 
@@ -126,8 +131,23 @@
                         <option value="name_desc" {{ request('sort') == 'name_desc' ? 'selected' : '' }}>Nama Z-A</option>
                         <option value="cost_asc" {{ request('sort') == 'cost_asc' ? 'selected' : '' }}>Biaya Terendah</option>
                         <option value="cost_desc" {{ request('sort') == 'cost_desc' ? 'selected' : '' }}>Biaya Tertinggi</option>
+                        <option value="stock_asc" {{ request('sort') == 'stock_asc' ? 'selected' : '' }}>Stok Terendah</option>
+                        <option value="stock_desc" {{ request('sort') == 'stock_desc' ? 'selected' : '' }}>Stok Tertinggi</option>
                     </select>
-                    @if(request()->hasAny(['unit', 'sort']))
+                    <select name="stock_status" onchange="this.form.submit()" 
+                            class="px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition">
+                        <option value="">Semua Stok</option>
+                        <option value="low" {{ request('stock_status') == 'low' ? 'selected' : '' }}>Stok Menipis</option>
+                        <option value="safe" {{ request('stock_status') == 'safe' ? 'selected' : '' }}>Stok Aman</option>
+                    </select>
+                    <select name="per_page" onchange="this.form.submit()" 
+                            class="px-4 py-2.5 rounded-xl bg-gray-50 border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition">
+                        @foreach([10, 25, 50, 100] as $pageSize)
+                            <option value="{{ $pageSize }}" {{ (string) request('per_page', 10) === (string) $pageSize ? 'selected' : '' }}>{{ $pageSize }}/hal</option>
+                        @endforeach
+                        <option value="all" {{ request('per_page') === 'all' ? 'selected' : '' }}>Semua</option>
+                    </select>
+                    @if(request()->hasAny(['search', 'unit', 'sort', 'stock_status', 'per_page']))
                         <a href="{{ route('raw-materials.index') }}" class="px-4 py-2.5 rounded-xl bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium transition">
                             Reset
                         </a>
@@ -236,15 +256,23 @@
                                         <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                                     </svg>
                                 </div>
-                                <p class="text-gray-500 font-semibold text-lg">Belum ada bahan baku</p>
-                                <p class="text-sm text-gray-400 mt-1 mb-4">Klik tombol di bawah untuk menambahkan bahan baku baru</p>
-                                <button onclick="openModal('addModal')" 
-                                        class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                        <path d="M12 4v16m8-8H4"/>
-                                    </svg>
-                                    Tambah Bahan Baku
-                                </button>
+                                @if(request()->hasAny(['search', 'unit', 'sort', 'stock_status']))
+                                    <p class="text-gray-500 font-semibold text-lg">Tidak ada data yang cocok</p>
+                                    <p class="text-sm text-gray-400 mt-1 mb-4">Coba ubah kata kunci atau reset filter.</p>
+                                    <a href="{{ route('raw-materials.index') }}" class="inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+                                        Reset Filter
+                                    </a>
+                                @else
+                                    <p class="text-gray-500 font-semibold text-lg">Belum ada bahan baku</p>
+                                    <p class="text-sm text-gray-400 mt-1 mb-4">Klik tombol di bawah untuk menambahkan bahan baku baru</p>
+                                    <button onclick="openModal('addModal')" 
+                                            class="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M12 4v16m8-8H4"/>
+                                        </svg>
+                                        Tambah Bahan Baku
+                                    </button>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -600,14 +628,6 @@
         document.getElementById('deleteName').textContent = name;
         openModal('deleteModal');
     }
-
-    // Search
-    document.getElementById('searchInput').addEventListener('input', function(e) {
-        const search = e.target.value.toLowerCase();
-        document.querySelectorAll('#rawMaterialsTableBody tr').forEach(row => {
-            row.style.display = row.textContent.toLowerCase().includes(search) ? '' : 'none';
-        });
-    });
 
     document.getElementById('addUnitName').addEventListener('input', () => syncBaseUnitRow('add'));
     document.getElementById('editUnit').addEventListener('input', () => syncBaseUnitRow('edit'));

@@ -9,6 +9,7 @@ use App\Models\Register;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleItemModifier;
+use App\Models\Setting;
 use App\Models\Table;
 use App\Http\Controllers\Kasir\RegisterController;
 use Illuminate\Database\Eloquent\Builder;
@@ -35,13 +36,21 @@ class PosController extends Controller
     /**
      * Apply shared visibility rules for products shown in POS.
      *
-     * Rules:
-     * - Regular product: must have a recipe with quantity and at least one recipe item.
-     * - Combo/package: must have package items, and every component product must exist,
-     *   be active, not a package, and have a valid recipe.
+     * Rules based on require_recipe_to_sell_product setting:
+     * - When ENABLED: Regular products must have a recipe, packages must have valid components
+     * - When DISABLED: All active products are shown (recipes optional)
      */
     private function applyPosVisibilityConstraints(Builder $query): Builder
     {
+        $requireRecipe = Setting::getValue('require_recipe_to_sell_product', false);
+
+        if (!$requireRecipe) {
+            // When recipe is not required, show all active products
+            // (This filter is already applied at the caller level via where('is_active', true))
+            return $query;
+        }
+
+        // When recipe is required, apply strict validation
         return $query->where(function (Builder $productQuery) {
             $productQuery
                 ->where(function (Builder $regularProductQuery) {

@@ -150,6 +150,18 @@
                     </button>
                 </div>
                 <div class="flex items-center space-x-2">
+                    <div id="activeRegisterInfo" class="hidden sm:block text-xs text-gray-600 px-3 py-2 bg-gray-100 rounded-xl">
+                        @if($activeRegisterSession)
+                            Session: <span class="font-semibold text-orange-600">{{ $activeRegisterSession->register->name }}</span>
+                        @else
+                            <span class="text-red-500 font-medium">Belum ada session</span>
+                        @endif
+                    </div>
+                    <button onclick="showRegisterPicker()" class="p-2.5 bg-orange-100 text-orange-500 rounded-xl hover:bg-orange-200 transition" title="Pilih / buka kasir">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m0-4a4 4 0 100-8 4 4 0 000 8zm8 0a4 4 0 100-8 4 4 0 000 8z" />
+                        </svg>
+                    </button>
                     <button class="p-2.5 bg-orange-100 text-orange-500 rounded-xl hover:bg-orange-200 transition">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path
@@ -170,12 +182,13 @@
                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
                     </button>
-                    <button class="p-2.5 bg-orange-500 text-white rounded-xl hover:bg-orange-600 transition">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                            <path
-                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
-                        </svg>
-                    </button>
+                    @if($activeRegisterSession)
+                        <button onclick='showCloseRegisterFromPos({{ $activeRegisterSession->id }}, @json($activeRegisterSession->register->name))' class="p-2.5 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition" title="Tutup kasir">
+                            <svg class="w-5 h-5 m-0 p-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M18 8L22 12M22 12L18 16M22 12H9M15 4.20404C13.7252 3.43827 12.2452 3 10.6667 3C5.8802 3 2 7.02944 2 12C2 16.9706 5.8802 21 10.6667 21C12.2452 21 13.7252 20.5617 15 19.796" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -468,41 +481,67 @@
     </div>
 
     <div id="openRegisterModalPos" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
-            <h2 class="text-xl font-bold text-gray-900">Open Register</h2>
-            <p id="openRegisterNamePos" class="text-sm text-gray-600">Kasir: -</p>
+        <div class="bg-white rounded-2xl w-full max-w-md p-6 space-y-5">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Buka Session Kasir</h2>
+                <p id="openRegisterNamePos" class="text-sm text-gray-600 mt-1">Kasir: -</p>
+            </div>
             <input type="hidden" id="openRegisterIdPos" />
+            <div class="rounded-xl bg-orange-50 border border-orange-100 p-3 text-sm text-orange-800">
+                Isi modal awal sesuai uang cash fisik di laci kasir.
+            </div>
             <div>
                 <label class="text-sm text-gray-700">Uang Modal Awal</label>
-                <input id="openingCashInputPos" type="number" min="0" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl">
+                <input id="openingCashInputPos" type="number" min="0" step="1000" placeholder="0" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl">
             </div>
             <div>
                 <label class="text-sm text-gray-700">Catatan</label>
-                <textarea id="openingNoteInputPos" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl"></textarea>
+                <textarea id="openingNoteInputPos" rows="3" placeholder="Opsional" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl"></textarea>
             </div>
             <div class="flex justify-end gap-2">
                 <button onclick="hideOpenRegisterPos()" class="px-4 py-2 border border-gray-300 rounded-xl">Batal</button>
-                <button onclick="submitOpenRegisterPos()" class="px-4 py-2 bg-orange-500 text-white rounded-xl">Open Register</button>
+                <button id="openRegisterSubmitBtnPos" onclick="submitOpenRegisterPos()" class="px-4 py-2 bg-orange-500 text-white rounded-xl">Buka Session</button>
             </div>
         </div>
     </div>
 
     <div id="closeRegisterModalPos" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
-            <h2 class="text-xl font-bold text-gray-900">Close Register</h2>
-            <p id="closeRegisterNamePos" class="text-sm text-gray-600">Kasir: -</p>
+        <div class="bg-white rounded-2xl w-full max-w-lg p-6 space-y-5">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Tutup Session Kasir</h2>
+                <p id="closeRegisterNamePos" class="text-sm text-gray-600 mt-1">Kasir: -</p>
+            </div>
             <input type="hidden" id="closeSessionIdPos" />
+            <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="rounded-xl bg-gray-50 p-3">
+                    <p class="text-gray-500">Modal Awal</p>
+                    <p id="closeSummaryOpeningCashPos" class="font-bold text-gray-900">Rp 0</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 p-3">
+                    <p class="text-gray-500">Penjualan Cash</p>
+                    <p id="closeSummaryCashSalesPos" class="font-bold text-gray-900">Rp 0</p>
+                </div>
+                <div class="rounded-xl bg-gray-50 p-3">
+                    <p class="text-gray-500">Non-Cash</p>
+                    <p id="closeSummaryNonCashSalesPos" class="font-bold text-gray-900">Rp 0</p>
+                </div>
+                <div class="rounded-xl bg-orange-50 p-3">
+                    <p class="text-orange-700">Cash Seharusnya</p>
+                    <p id="closeSummaryExpectedCashPos" class="font-bold text-orange-700">Rp 0</p>
+                </div>
+            </div>
             <div>
                 <label class="text-sm text-gray-700">Total Uang Akhir</label>
-                <input id="closingCashInputPos" type="number" min="0" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl">
+                <input id="closingCashInputPos" type="number" min="0" step="1000" placeholder="Hitung uang cash fisik" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl">
+                <p id="closeRegisterDifferencePos" class="text-xs text-gray-500 mt-1">Selisih akan dihitung otomatis.</p>
             </div>
             <div>
                 <label class="text-sm text-gray-700">Catatan</label>
-                <textarea id="closingNoteInputPos" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl"></textarea>
+                <textarea id="closingNoteInputPos" rows="3" placeholder="Opsional, misalnya alasan selisih" class="w-full mt-1 px-3 py-2 border border-gray-300 rounded-xl"></textarea>
             </div>
             <div class="flex justify-end gap-2">
                 <button onclick="hideCloseRegisterFromPos()" class="px-4 py-2 border border-gray-300 rounded-xl">Batal</button>
-                <button onclick="submitCloseRegisterFromPos()" class="px-4 py-2 bg-gray-700 text-white rounded-xl">Close Register</button>
+                <button id="closeRegisterSubmitBtnPos" onclick="submitCloseRegisterFromPos()" class="px-4 py-2 bg-gray-700 text-white rounded-xl">Tutup Session</button>
             </div>
         </div>
     </div>

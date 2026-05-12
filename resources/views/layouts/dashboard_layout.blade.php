@@ -30,6 +30,7 @@
         <div class="mb-6">
             <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Platform</p>
             <nav class="flex flex-col gap-0.5">
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('dashboard'))
                 <a href="{{ url('/dashboard') }}"
                     class="nav-link {{ request()->is('dashboard') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
@@ -38,6 +39,8 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">DASHBOARD</span>
                 </a>
+                @endif
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('kasir'))
                 <a href="{{ route('kasir.registers.index') }}"
                     class="nav-link {{ request()->is('kasir*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
@@ -47,12 +50,14 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">KASIR</span>
                 </a>
+                @endif
             </nav>
         </div>
 
         <div class="mb-6">
             <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Master Data</p>
             <nav class="flex flex-col gap-0.5">
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('categories'))
                 <a href="{{ route('categories.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -60,6 +65,8 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">KATEGORI</span>
                 </a>
+                @endif
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('products'))
                 <a href="{{ route('products.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -70,6 +77,8 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">PRODUK</span>
                 </a>
+                @endif
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('modifiers'))
                 <a href="{{ route('modifiers.index') }}" class="nav-link {{ request()->is('dashboard/modifiers*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -77,6 +86,8 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">MODIFIER</span>
                 </a>
+                @endif
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('raw_materials'))
                 <a href="{{ route('raw-materials.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -85,6 +96,8 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">BAHAN MENTAH</span>
                 </a>
+                @endif
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('recipes'))
                 <a href="{{ route('recipes.index') }}"
                     class="nav-link {{ request()->is('recipes*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
@@ -94,12 +107,14 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">RESEP</span>
                 </a>
+                @endif
             </nav>
         </div>
 
         <div class="mb-6">
             <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Inventory</p>
             <nav class="flex flex-col gap-0.5">
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('purchases'))
                 <a href="{{ route('purchases.index') }}" class="nav-link flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -109,6 +124,8 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">PURCHASE</span>
                 </a>
+                @endif
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('stock_opnames'))
                 <a href="{{ route('stock-opnames.index') }}"
                     class="nav-link {{ request()->is('stock-opnames*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
@@ -118,12 +135,14 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">STOCK OPNAME</span>
                 </a>
+                @endif
             </nav>
         </div>
 
         <div class="mb-6">
             <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Laporan</p>
             <nav class="flex flex-col gap-0.5">
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('transactions_report'))
                 <a href="{{ route('transactions.index') }}" class="nav-link {{ request()->is('dashboard/reports/transactions*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -131,6 +150,8 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">TRANSAKSI</span>
                 </a>
+                @endif
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('sales_report'))
                 <a href="{{ route('sales.index') }}" class="nav-link {{ request()->is('dashboard/reports/sales*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -138,6 +159,7 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">LAPORAN PENJUALAN</span>
                 </a>
+                @endif
                 {{-- <a href="{{ route('daily-summary.index') }}" class="nav-link {{ request()->is('dashboard/reports/daily-summary*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
                         viewBox="0 0 24 24">
@@ -145,6 +167,32 @@
                     </svg>
                     <span class="nav-title text-sm tracking-[2px]">RINGKASAN HARIAN</span>
                 </a> --}}
+            </nav>
+        </div>
+
+        <div class="mb-6">
+            <p class="text-[10px]  uppercase tracking-[0.15em] opacity-60 mb-2 px-2">Sistem</p>
+            <nav class="flex flex-col gap-0.5">
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('settings'))
+                <a href="{{ route('settings.index') }}" class="nav-link {{ request()->is('dashboard/settings*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="nav-title text-sm tracking-[2px]">PENGATURAN</span>
+                </a>
+                @endif
+                
+                @if(config('app.debug') || auth()->user()?->hasPermissionTo('users'))
+                <a href="{{ route('users.index') }}" class="nav-link {{ request()->is('dashboard/users*') || request()->is('dashboard/roles*') ? 'active-nav' : '' }} flex items-center gap-3 px-3 py-2.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <span class="nav-title text-sm tracking-[2px]">PENGGUNA & ROLE</span>
+                </a>
+                @endif
             </nav>
         </div>
 
@@ -158,8 +206,8 @@
                     </svg>
                 </div>
                 <div>
-                    <p class="nav-title text-sm leading-none">ADMIN</p>
-                    <p class="text-[10px] opacity-60 mt-0.5">Super Admin</p>
+                    <p class="nav-title text-sm leading-none">{{ auth()->user() ? strtoupper(auth()->user()->name) : 'ADMIN' }}</p>
+                    <p class="text-[10px] opacity-60 mt-0.5">{{ auth()->user() && auth()->user()->role ? auth()->user()->role->name : 'Super Admin' }}</p>
                 </div>
             </a>
         </div>

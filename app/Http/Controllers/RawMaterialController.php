@@ -12,6 +12,18 @@ class RawMaterialController extends Controller
     {
         $query = RawMaterial::with('units');
 
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('unit', 'like', "%{$search}%");
+
+                if (is_numeric($search)) {
+                    $q->orWhere('id', (int) $search);
+                }
+            });
+        }
+
         // Filter by unit
         if ($request->filled('unit')) {
             $query->where('unit', $request->unit);
@@ -20,16 +32,42 @@ class RawMaterialController extends Controller
         // Filter by stock status
         if ($request->filled('stock_status')) {
             if ($request->stock_status === 'low') {
-                $query->whereColumn('minimal_stock', '>', 'minimal_stock'); // Untuk demo, nanti bisa diganti dengan actual stock
+                $query->whereColumn('stock', '<=', 'minimal_stock');
+            } elseif ($request->stock_status === 'safe') {
+                $query->whereColumn('stock', '>', 'minimal_stock');
             }
         }
 
-        $rawMaterials = $query->latest()->paginate(10);
+        match ($request->input('sort')) {
+            'name_asc' => $query->orderBy('name'),
+            'name_desc' => $query->orderByDesc('name'),
+            'cost_asc' => $query->orderBy('cost'),
+            'cost_desc' => $query->orderByDesc('cost'),
+            'stock_asc' => $query->orderBy('stock'),
+            'stock_desc' => $query->orderByDesc('stock'),
+            default => $query->latest(),
+        };
+
+        $perPage = $request->input('per_page', 10);
+        if ($perPage === 'all') {
+            $perPage = max((clone $query)->count(), 1);
+        } else {
+            $perPage = in_array((int) $perPage, [10, 25, 50, 100], true) ? (int) $perPage : 10;
+        }
+
+        $rawMaterials = $query->paginate($perPage)->withQueryString();
 
         // Get unique units for filter
-        $units = RawMaterial::distinct()->pluck('unit');
+        $units = RawMaterial::whereNotNull('unit')->distinct()->orderBy('unit')->pluck('unit');
 
-        return view('dashboard.raw_material', compact('rawMaterials', 'units'));
+        $stats = [
+            'total_materials' => RawMaterial::count(),
+            'total_cost' => (float) RawMaterial::sum('cost'),
+            'unit_count' => RawMaterial::distinct('unit')->count('unit'),
+            'average_cost' => (float) RawMaterial::avg('cost'),
+        ];
+
+        return view('dashboard.raw_material', compact('rawMaterials', 'units', 'stats'));
     }
 
     private function syncUnits(RawMaterial $rawMaterial, array $units = [])

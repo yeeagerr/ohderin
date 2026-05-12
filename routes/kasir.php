@@ -12,6 +12,8 @@ Route::put('/kasir/registers/{register}', [RegisterController::class, 'update'])
 Route::delete('/kasir/registers/{register}', [RegisterController::class, 'destroy'])->name('kasir.registers.delete');
 Route::post('/kasir/registers/{register}/enter', [RegisterController::class, 'enter'])->name('kasir.registers.enter');
 Route::post('/kasir/registers/{register}/open', [RegisterController::class, 'open'])->name('kasir.registers.open');
+Route::get('/kasir/register-sessions/history', [RegisterController::class, 'history'])->name('kasir.registers.history');
+Route::get('/kasir/register-sessions/{registerSession}/summary', [RegisterController::class, 'summary'])->name('kasir.registers.summary');
 Route::post('/kasir/register-sessions/{registerSession}/close', [RegisterController::class, 'close'])->name('kasir.registers.close');
 Route::get('/kasir/register-status', [RegisterController::class, 'status'])->name('kasir.registers.status');
 
@@ -31,6 +33,7 @@ Route::delete('/kasir/pos/drafts/{id}', [PosController::class, 'deleteDraft'])->
 Route::get('/kasir/orders', [OrderController::class, 'index'])->name('kasir.order');
 Route::get('/kasir/orders/data', [OrderController::class, 'getOrders'])->name('kasir.orders.data');
 Route::get('/kasir/orders/{id}', [OrderController::class, 'getOrderDetail'])->name('kasir.orders.detail');
+Route::post('/kasir/orders/{id}/refund', [OrderController::class, 'refund'])->name('kasir.orders.refund');
 
 // Kasir Stock Opnames
 Route::get('/kasir/stock-opnames', [\App\Http\Controllers\Kasir\StockOpnameController::class, 'index'])->name('kasir.stock-opnames.index');
